@@ -20,15 +20,15 @@ cbuffer MatrixBuffer
 // TYPE DEFS
 struct VertexInputType
 {
-	float4 position : POSITON;
-	floa2  texCoord : TEXCOORD0;
-}
+	float4 position : POSITION;
+	float2 texCoord : TEXCOORD0;
+};
 
 struct PixelInputType
 {
-	float4 position : POSITON;
-	floa2  texCoord : TEXCOORD0;
-}
+	float4 position : SV_POSITION;
+	float2 texCoord : TEXCOORD0;
+};
 
 /*
 ******************************************************************
@@ -45,7 +45,7 @@ PixelInputType TextureVertexShader(VertexInputType inputVertex)
 	inputVertex.position.w = 1.0f;
 
 	// Calculate the position of the vertex
-	outputPixel.position = mul(inputVertex.poisition, world);
+	outputPixel.position = mul(inputVertex.position, world);
 	outputPixel.position = mul(outputPixel.position, view);
 	outputPixel.position = mul(outputPixel.position, projection);
 

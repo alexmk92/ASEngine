@@ -1,9 +1,9 @@
 
 /*
 ******************************************************************
-* ASTextureShader.cpp
+* ASTexture.cpp
 ******************************************************************
-* Implements methods outlined in ASTextureShader.h
+* Implements methods outlined in ASTexture.h
 */
 
 #include "ASTexture.h"

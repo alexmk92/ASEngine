@@ -83,6 +83,8 @@
     <ClCompile Include="ASGraphics.cpp" />
     <ClCompile Include="ASInput.cpp" />
     <ClCompile Include="ASModel.cpp" />
+    <ClCompile Include="ASTexture.cpp" />
+    <ClCompile Include="ASTextureShader.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -93,10 +95,14 @@
     <ClInclude Include="ASGraphics.h" />
     <ClInclude Include="ASInput.h" />
     <ClInclude Include="ASModel.h" />
+    <ClInclude Include="ASTexture.h" />
+    <ClInclude Include="ASTextureShader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ASColor.ps" />
     <None Include="ASColor.vs" />
+    <None Include="ASTexture.ps" />
+    <None Include="ASTexture.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

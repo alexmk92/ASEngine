@@ -44,7 +44,7 @@ public:
 	~ASModel();
 
 	// Methods to manage the models buffers
-	bool Init(ID3D11Device*);
+	bool Init(ID3D11Device*, WCHAR*);
 	void Release();
 	void Render(ID3D11DeviceContext*);
 

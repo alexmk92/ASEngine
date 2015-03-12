@@ -28,12 +28,12 @@ struct PixelInputType
 * @return float4 - The final color of the pixel at this location
 */
 
-float4 ColorPixelShader(PixelInputType inputPixel) : SV_TARGET
+float4 TexturePixelShader(PixelInputType inputPixel) : SV_TARGET
 {
 	float4 texColor;
 
 	// Sample the pixels color from the texture using the sampler defined above
-	texColor = shaderTexture.Sample(SampleType, inputPixel.texCoord);
+	texColor = shaderTexture.Sample(sampleType, inputPixel.texCoord);
 
 	return texColor;
 }

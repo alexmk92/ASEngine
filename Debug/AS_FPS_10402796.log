@@ -1,8 +1,8 @@
-﻿Build started 12/03/2015 14:21:30.
+﻿Build started 12/03/2015 17:30:38.
      1>Project "C:\Users\Alex\Documents\SOFT323 Pt2 Submission\AS_FPS_10402796\AS_FPS_10402796\AS_FPS_10402796.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt ASDirect3D.cpp
-         ASDirect3D.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt ASTextureShader.cpp
+         ASTextureShader.cpp
      1>c:\program files (x86)\microsoft directx sdk (june 2010)\include\dxgitype.h(12): warning C4005: 'DXGI_STATUS_OCCLUDED' : macro redefinition
                  c:\program files (x86)\windows kits\8.0\include\shared\winerror.h(49449) : see previous definition of 'DXGI_STATUS_OCCLUDED'
      1>c:\program files (x86)\microsoft directx sdk (june 2010)\include\dxgitype.h(13): warning C4005: 'DXGI_STATUS_CLIPPED' : macro redefinition
@@ -67,10 +67,12 @@
          Debug\ASGraphics.obj
          Debug\ASInput.obj
          Debug\ASModel.obj
+         Debug\ASTexture.obj
+         Debug\ASTextureShader.obj
          Debug\main.obj
          AS_FPS_10402796.vcxproj -> C:\Users\Alex\Documents\SOFT323 Pt2 Submission\AS_FPS_10402796\Debug\AS_FPS_10402796.exe
      1>Done Building Project "C:\Users\Alex\Documents\SOFT323 Pt2 Submission\AS_FPS_10402796\AS_FPS_10402796\AS_FPS_10402796.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:00.88
+Time Elapsed 00:00:01.22

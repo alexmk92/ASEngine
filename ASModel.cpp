@@ -20,6 +20,7 @@ ASModel::ASModel()
 {
 	m_vertexBuffer = 0;
 	m_indexBuffer  = 0;
+	m_texture      = 0;
 }
 
 /*
@@ -53,9 +54,14 @@ ASModel::~ASModel()
 ******************************************************************
 */
 
-bool ASModel::Init(ID3D11Device* device)
+bool ASModel::Init(ID3D11Device* device, WCHAR* textureFile)
 {
 	bool success = InitBuffers(device);
+	if(!success)
+		return false;
+
+	// Load the texture for the model
+	success = LoadTexture(device, textureFile);
 	if(!success)
 		return false;
 	else
@@ -73,6 +79,7 @@ bool ASModel::Init(ID3D11Device* device)
 
 void ASModel::Release()
 {
+	ReleaseTexture();
 	ReleaseBuffers();
 	return;
 }
@@ -88,9 +95,9 @@ void ASModel::Release()
 * @param ID3D11DeviceContext* - the device we are rendering with
 */
 
-void ASModel::Render(ID3D11DeviceContext* device)
+void ASModel::Render(ID3D11DeviceContext* deviceCtx)
 {
-	RenderBuffers(device);
+	RenderBuffers(deviceCtx);
 	return;
 }
 
@@ -105,6 +112,19 @@ void ASModel::Render(ID3D11DeviceContext* device)
 int ASModel::GetIndexCount()
 {
 	return m_numIndices;
+}
+
+/*
+******************************************************************
+* METHOD: Get Texture
+******************************************************************
+* @return ID3D11ShaderResourceView* - the texture we loaded
+******************************************************************
+*/
+
+ID3D11ShaderResourceView* ASModel::GetTexture()
+{
+	return m_texture->GetTexture();
 }
 
 /*
@@ -150,13 +170,13 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	// always draw clock-wise, failure to do so will result in triangle not being drawn
 	// due to BACK_FACE_CULL flag set in the rasteriser
 	vertices[0].position = D3DXVECTOR3(-1.0f, -1.0f, 0.0f);  // Bottom left.
-	vertices[0].color	 = D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f);
+	vertices[0].texture	 = D3DXVECTOR2(0.0f, 1.0f);
 
 	vertices[1].position = D3DXVECTOR3(0.0f, 1.0f, 0.0f);  // Top middle.
-	vertices[1].color	 = D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f);
+	vertices[1].texture	 = D3DXVECTOR2(0.5f, 0.0f);
 
 	vertices[2].position = D3DXVECTOR3(1.0f, -1.0f, 0.0f);  // Bottom right.
-	vertices[2].color	 = D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f);
+	vertices[2].texture	 = D3DXVECTOR2(1.0f, 1.0f);
 
 	indices[0] = 0;  // Bottom left.
 	indices[1] = 1;  // Top middle.
@@ -184,7 +204,7 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	// will return a pointer to the buffer
 	iBufferDesc.Usage				= D3D11_USAGE_DEFAULT;
 	iBufferDesc.ByteWidth			= sizeof(unsigned long) * m_numIndices;
-	iBufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
+	iBufferDesc.BindFlags			= D3D11_BIND_INDEX_BUFFER;
 	iBufferDesc.CPUAccessFlags		= 0;
 	iBufferDesc.MiscFlags			= 0;
 	iBufferDesc.StructureByteStride = 0;
@@ -206,6 +226,49 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	indices  = 0;
 
 	return true;
+}
+
+/*
+******************************************************************
+* METHOD: Load Texture
+******************************************************************
+* Creates a new texture object based upon the Texture file that
+* hasd been given - this is called from Init()
+******************************************************************
+*/
+
+bool ASModel::LoadTexture(ID3D11Device* device, WCHAR* file)
+{
+	m_texture = new ASTexture;
+	if(!m_texture)
+		return false;
+
+	// Initialise the texture object
+	bool success = m_texture->Init(device, file);
+	if(!success)
+		return false;
+	else
+		return true;
+}
+
+/*
+******************************************************************
+* METHOD: Release Texture
+******************************************************************
+* Disposes of any any resources utilised by the texture
+******************************************************************
+*/
+
+void ASModel::ReleaseTexture()
+{
+	if(m_texture)
+	{
+		m_texture->Release();
+		delete m_texture;
+		m_texture = 0;
+	}
+
+	return;
 }
 
 /*

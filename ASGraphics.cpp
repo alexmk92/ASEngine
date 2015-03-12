@@ -21,10 +21,10 @@
 
 ASGraphics::ASGraphics() 
 {
-	m_ColorShader = 0;
-	m_Camera	  = 0;
-	m_Model		  = 0;
-	m_D3D		  = 0;
+	m_TextureShader = 0;
+	m_Camera	    = 0;
+	m_Model		    = 0;
+	m_D3D		    = 0;
 }
 
 /*
@@ -40,15 +40,10 @@ ASGraphics::ASGraphics(const ASGraphics& g)
 *******************************************************************
 * Destructor
 *******************************************************************
-* When the object is deleted, we check to see if there is still a
-* pointer to it, if this is true then we safely release the object
-*******************************************************************
 */
 
 ASGraphics::~ASGraphics()
-{
-	if(this) { Release(); }
-}
+{}
 
 /*
 *******************************************************************
@@ -95,7 +90,7 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 
 	// Initialise the model, passing the rendering device 
-	success = m_Model->Init(m_D3D->GetDevice());
+	success = m_Model->Init(m_D3D->GetDevice(), L"./Textures/seafloor.dds");
 	if(!success)
 	{
 		MessageBox(hwnd, L"Error when initialising the model in ASGraphics.cpp, please check ASModel.cpp for errors.", L"Error", MB_OK);
@@ -103,14 +98,14 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	}
 
 	// Initialise a new color shader
-	m_ColorShader = new ASColorShader;
-	if(!m_ColorShader)
+	m_TextureShader = new ASTextureShader;
+	if(!m_TextureShader)
 		return false;
 
-	success = m_ColorShader->Init(m_D3D->GetDevice(), hwnd);
+	success = m_TextureShader->Init(m_D3D->GetDevice(), hwnd);
 	if(!success)
 	{
-		MessageBox(hwnd, L"Error when initialising the ASColor object; check the Pixel and Vertex Shader", L"Error", MB_OK);
+		MessageBox(hwnd, L"Error when initialising the ASTexture object; check the Pixel and Vertex Shader", L"Error", MB_OK);
 		return false;
 	}
 
@@ -173,7 +168,7 @@ bool ASGraphics::RenderScene()
 	m_Model->Render(m_D3D->GetDeviceContext());
 
 	// Render the model using the shader
-	success = m_ColorShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection);
+	success = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection, m_Model->GetTexture());
 	if(!success)
 		return false;
 
@@ -196,12 +191,12 @@ bool ASGraphics::RenderScene()
 
 void ASGraphics::Release()
 {
-	// Release the Color Shader
-	if(m_ColorShader)
+	// Release the Texture Shader
+	if(m_TextureShader)
 	{
-		m_ColorShader->Release();
-		delete m_ColorShader;
-		m_ColorShader = 0;
+		m_TextureShader->Release();
+		delete m_TextureShader;
+		m_TextureShader = 0;
 	}
 	// Release the Model Object
 	if(m_Model)

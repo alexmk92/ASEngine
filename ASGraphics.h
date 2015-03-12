@@ -25,7 +25,7 @@
 #include "ASDirect3D.h"
 #include "ASCamera.h"
 #include "ASModel.h"
-#include "ASColorShader.h"
+#include "ASTextureShader.h"
 
 /*
 *******************************************************************
@@ -62,11 +62,11 @@ private:
 	bool RenderScene();
 
 	// Private member variables
-	ASColorShader* m_ColorShader;
-	ASDirect3D*    m_D3D;
-	ASCamera*      m_Camera;
-	ASModel*       m_Model;
-
+	ASTextureShader* m_TextureShader;
+	ASDirect3D*      m_D3D;
+	ASCamera*        m_Camera;
+	ASModel*         m_Model;
+	 
 };
 
 #endif
