@@ -42,7 +42,7 @@ public:
 	D3DXVECTOR3 GetPosition();
 
 	// Render the view
-	void Render();
+	void RenderCameraView();
 
 	// Write the View matrix to a given D3DXMATRIX object
 	void GetViewMatrix(D3DXMATRIX&);
@@ -56,7 +56,7 @@ private:
 	// X, Y, Z Positions of the rotation matrix
 	float m_rotX;
 	float m_rotY;
-	float m_rozZ;
+	float m_rotZ;
 
 	//  Matrix to describe what we are looking at (the eye of the camera)
 	D3DXMATRIX m_cameraView;
