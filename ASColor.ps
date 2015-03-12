@@ -1,0 +1,31 @@
+
+/*
+******************************************************************
+* ASColor.ps
+******************************************************************
+* Pixel shader to map each pixel to the polygons that are to
+* be rendered to the screen.  
+*
+* The pixel shader recieves its input from the output of the
+* vertex shader
+******************************************************************
+*/
+
+struct PixelInputType
+{
+	float4 position : SV_POSITION;
+	float4 color    : COLOR;
+};
+
+/*
+******************************************************************
+* PIXEL SHADER
+******************************************************************
+* @return float4 - The final color of the pixel at this location
+*/
+
+float4 ColorPixelShader(PixelInputType inputPixel) : SV_TARGET
+{
+	return inputPixel.color;
+}
+
