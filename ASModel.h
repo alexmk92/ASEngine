@@ -14,10 +14,12 @@
 ******************************************************************
 * Includes
 ******************************************************************
+* + ASTextureShader.h - Supports texturing of models
 */
 
 #include <d3d11.h>
 #include <d3dx10math.h>
+#include "ASTexture.h"
 
 /*
 ******************************************************************
@@ -28,11 +30,11 @@
 class ASModel
 {
 private:
-	// Struct mapped to the struct found in ASColor.vs
+	// Struct mapped to the struct found in ASTexture.vs
 	struct VertexType
 	{
 		D3DXVECTOR3 position;
-		D3DXVECTOR4 color;
+		D3DXVECTOR2 texture;
 	};
 
 public:
@@ -48,11 +50,18 @@ public:
 
 	int GetIndexCount();
 
+	// Used to pass the models texture resource to the shader
+	ID3D11ShaderResourceView* GetTexture();
+
 private:
 	// Private methods
 	bool InitBuffers(ID3D11Device*);
 	void ReleaseBuffers();
 	void RenderBuffers(ID3D11DeviceContext*);
+
+	// Methods to handle the loading and disposing of texture resource on a model
+	bool LoadTexture(ID3D11Device*, WCHAR*);
+	void ReleaseTexture();
 
 	// Private member variables
 	ID3D11Buffer* m_vertexBuffer;
@@ -60,6 +69,8 @@ private:
 	
 	int m_numVertices;
 	int m_numIndices;
+
+	ASTexture* m_texture;
 
 };
 

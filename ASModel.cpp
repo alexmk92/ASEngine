@@ -165,7 +165,7 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	// Describe the vertex buffer, then call CreateBuffer on the device, this
 	// will return a pointer to the buffer
 	vBufferDesc.Usage				= D3D11_USAGE_DEFAULT;
-	vBufferDesc.ByteWidth			= sizeof(VertexType)* m_numVertices;
+	vBufferDesc.ByteWidth			= sizeof(VertexType) * m_numVertices;
 	vBufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
 	vBufferDesc.CPUAccessFlags		= 0;
 	vBufferDesc.MiscFlags			= 0;
@@ -183,7 +183,7 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	// Describe the index buffer, then call CreateBuffer on the device, this
 	// will return a pointer to the buffer
 	iBufferDesc.Usage				= D3D11_USAGE_DEFAULT;
-	iBufferDesc.ByteWidth			= sizeof(unsigned long)* m_numIndices;
+	iBufferDesc.ByteWidth			= sizeof(unsigned long) * m_numIndices;
 	iBufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
 	iBufferDesc.CPUAccessFlags		= 0;
 	iBufferDesc.MiscFlags			= 0;

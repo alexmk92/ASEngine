@@ -1,0 +1,40 @@
+
+/*
+******************************************************************
+* ASTexture.ps
+******************************************************************
+* Pixel shader to map each pixel to the polygons that are to
+* be rendered to the screen.  
+*
+* The pixel shader recieves its input from the output of the
+* vertex shader
+******************************************************************
+*/
+
+Texture2D    shaderTexture;
+SamplerState sampleType;
+
+// TYPE DEFS
+struct PixelInputType
+{
+	float4 position : SV_POSITION;
+	float4 texCoord : TEXCOORD0;
+};
+
+/*
+******************************************************************
+* PIXEL SHADER
+******************************************************************
+* @return float4 - The final color of the pixel at this location
+*/
+
+float4 ColorPixelShader(PixelInputType inputPixel) : SV_TARGET
+{
+	float4 texColor;
+
+	// Sample the pixels color from the texture using the sampler defined above
+	texColor = shaderTexture.Sample(SampleType, inputPixel.texCoord);
+
+	return texColor;
+}
+

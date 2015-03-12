@@ -13,7 +13,7 @@ cbuffer MatrixBuffer
 	matrix worldMatrix;
 	matrix viewMatrix;
 	matrix projectionMatrix;
-}
+};
 
 /*
 ********************************************************************
@@ -27,15 +27,15 @@ cbuffer MatrixBuffer
 
 struct VertexInputType
 {
-	float4 position: POSITION;
-	float4 color   : COLOR; 
+	float4 position : POSITION;
+	float4 color    : COLOR; 
 };
 
 struct PixelInputType
 {
-	float4 position: SV_POSITION;
-	float4 color   : COLOR;
-}
+	float4 position : SV_POSITION;
+	float4 color    : COLOR;
+};
 
 /*
 ********************************************************************
@@ -59,9 +59,9 @@ PixelInputType ColorVertexShader(VertexInputType inputVert)
 	inputVert.position.w = 1.0f;
 
 	// Calculate the position of the vertex to be placed in the world
-	outputVert = mul(inputVert.position, worldMatrix);
-	outputVert = mul(inputVert.position, viewMatrix);
-	outputVert = mul(inputVert.position, projectionMatrix);
+	outputVert.position = mul(inputVert.position, worldMatrix);
+	outputVert.position = mul(outputVert.position, viewMatrix);
+	outputVert.position = mul(outputVert.position, projectionMatrix);
 
 	// Store the input color for the shader
 	outputVert.color = inputVert.color;

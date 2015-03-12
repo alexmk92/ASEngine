@@ -16,10 +16,16 @@
 * Includes:
 *******************************************************************
 * + ASDirect3D.h has been included to handle D3D system functions 
+* + ASCamera.h has been included so we can view the world around a camera
+* + ASModel.h has been included to load meshes to be rendered to scene
+* + ASColorShader.h has been included to apply color to loaded objects through VS and PS
 *******************************************************************
 */
 
 #include "ASDirect3D.h"
+#include "ASCamera.h"
+#include "ASModel.h"
+#include "ASColorShader.h"
 
 /*
 *******************************************************************
@@ -56,7 +62,10 @@ private:
 	bool RenderScene();
 
 	// Private member variables
-	ASDirect3D* m_D3D;
+	ASColorShader* m_ColorShader;
+	ASDirect3D*    m_D3D;
+	ASCamera*      m_Camera;
+	ASModel*       m_Model;
 
 };
 

@@ -64,7 +64,6 @@ void ASCamera::SetPosition(float x, float y, float z)
 	m_posX = x;
 	m_posY = y;
 	m_posZ = z;
-	return;
 }
 
 /*
@@ -175,3 +174,4 @@ void ASCamera::GetViewMatrix(D3DXMATRIX& view)
 	view = m_cameraView;
 	return;
 }
+

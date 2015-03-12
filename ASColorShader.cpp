@@ -56,7 +56,7 @@ ASColorShader::~ASColorShader()
 
 bool ASColorShader::Init(ID3D11Device* device, HWND handle)
 {
-	bool success = InitShader(device, handle, L"./Shaders/ASColor.vs", L"./Shaders/ASColor.ps");
+	bool success = InitShader(device, handle, L"./ASColor.vs", L"./ASColor.ps");
 	if(!success)
 		return false;
 	else
@@ -145,7 +145,7 @@ bool ASColorShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 	}
 
 	// Compile the pixel shader
-	hr = D3DX11CompileFromFile(psFile, NULL, NULL, "ColorPixelShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS,
+	hr = D3DX11CompileFromFile(psFile, NULL, NULL, "ColorPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS,
 							  0, NULL, &psBuffer, &err, NULL);
 	if(FAILED(hr))
 	{
@@ -161,7 +161,7 @@ bool ASColorShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 	hr = device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_vShader);
 	if(FAILED(hr))
 		return false;
-	hr = device->CreatePixelShader(psBuffer->GetBufferPointer, psBuffer->GetBufferSize(), NULL, &m_pShader);
+	hr = device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_pShader);
 	if(FAILED(hr))
 		return false;
 
@@ -187,7 +187,7 @@ bool ASColorShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 
 	// Create the input layout ont he device using our rendering device.
 	numElements = sizeof(polyLayout) / sizeof(polyLayout[0]);
-	hr = device->CreateInputLayout(polyLayout, numElements, vsBuffer->GetBufferPointer,
+	hr = device->CreateInputLayout(polyLayout, numElements, vsBuffer->GetBufferPointer(),
 								   vsBuffer->GetBufferSize(), &m_layout);
 	if(FAILED(hr))
 		return false;

@@ -21,7 +21,10 @@
 
 ASGraphics::ASGraphics() 
 {
-	m_D3D = 0;
+	m_ColorShader = 0;
+	m_Camera	  = 0;
+	m_Model		  = 0;
+	m_D3D		  = 0;
 }
 
 /*
@@ -79,6 +82,38 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 	}
 
+	// Initialise a new camera object
+	m_Camera = new ASCamera;
+	if(!m_Camera)
+		return false;
+
+	m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
+
+	// Initialise a new model object
+	m_Model = new ASModel;
+	if(!m_Model)
+		return false;
+
+	// Initialise the model, passing the rendering device 
+	success = m_Model->Init(m_D3D->GetDevice());
+	if(!success)
+	{
+		MessageBox(hwnd, L"Error when initialising the model in ASGraphics.cpp, please check ASModel.cpp for errors.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Initialise a new color shader
+	m_ColorShader = new ASColorShader;
+	if(!m_ColorShader)
+		return false;
+
+	success = m_ColorShader->Init(m_D3D->GetDevice(), hwnd);
+	if(!success)
+	{
+		MessageBox(hwnd, L"Error when initialising the ASColor object; check the Pixel and Vertex Shader", L"Error", MB_OK);
+		return false;
+	}
+
 	return true;
 }
 
@@ -119,8 +154,28 @@ bool ASGraphics::UpdateFrame()
 
 bool ASGraphics::RenderScene()
 {
-	// Clear buffers to begin scene
-	m_D3D->PrepareBuffers(0.5f, 0.5f, 0.5f, 1.0f);
+	bool success = false;
+
+	D3DXMATRIX world;
+	D3DXMATRIX view;
+	D3DXMATRIX projection;
+
+	// Clear the buffers and generate the view matrix for the cameras position
+	m_D3D->PrepareBuffers(0.0f, 0.0f, 0.0f, 1.0f);
+	m_Camera->RenderCameraView();
+
+	// Retrieve the WVP matrices from the camera
+	m_Camera->GetViewMatrix(view);
+	m_D3D->GetWorldMatrix(world);
+	m_D3D->GetProjectionMatrix(projection);
+
+	// Send the model to the Graphics pipeline to commence drawing
+	m_Model->Render(m_D3D->GetDeviceContext());
+
+	// Render the model using the shader
+	success = m_ColorShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection);
+	if(!success)
+		return false;
 
 	// Present the rendered scene to the screen
 	m_D3D->RenderScene();
@@ -141,6 +196,27 @@ bool ASGraphics::RenderScene()
 
 void ASGraphics::Release()
 {
+	// Release the Color Shader
+	if(m_ColorShader)
+	{
+		m_ColorShader->Release();
+		delete m_ColorShader;
+		m_ColorShader = 0;
+	}
+	// Release the Model Object
+	if(m_Model)
+	{
+		m_Model->Release();
+		delete m_Model;
+		m_Model = 0;
+	}
+	// Release the Camera Object
+	if(m_Camera)
+	{
+		delete m_Camera;
+		m_Camera = 0;
+	}
+	// Release the Rendering Device
 	if(m_D3D)
 	{
 		m_D3D->Release();
