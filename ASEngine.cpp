@@ -22,6 +22,9 @@ ASEngine::ASEngine()
 	m_input       = 0;
 	m_graphics	  = 0;
 	m_environment = 0;
+	m_cpuMonitor  = 0;
+	m_frameTimer  = 0;
+	m_fpsCounter  = 0;
 }
 
 /*
@@ -90,7 +93,38 @@ bool ASEngine::Init()
 		MessageBox(m_hwnd, L"Could not initialise DirectSound", L"Error", MB_OK);
 		return false;
 	}
-		
+
+	/*
+	* Performance modules - remove these if you don't need to debug or run benchmarks
+	*/
+
+	// FPS counter
+	m_fpsCounter = new ASFPSCounter;
+	if(!m_fpsCounter)
+		return false;
+	m_fpsCounter->Init();
+
+	// CPU Monitor
+	m_cpuMonitor = new ASCPUMonitor;
+	if(!m_cpuMonitor)
+		return false;
+	m_cpuMonitor->Init();
+
+	// High Precision Timer
+	m_frameTimer = new ASFrameTimer;
+	if(!m_frameTimer)
+		return false;
+	success = m_frameTimer->Init();
+	if(!m_frameTimer)
+	{
+		MessageBox(m_hwnd, L"Could not initialise the Frame Timer.", L"Error", MB_OK);
+		return false;
+	}
+
+	/*
+	* End of performance modules
+	*/
+
 	// Catch the value of success, and determine if the window was initalised 
 	// without any errors
 	if(!success)
@@ -396,6 +430,25 @@ void ASEngine::Release()
 		m_input->Release();
 		delete m_input;
 		m_input = 0;
+	}
+	// Release the performance objects
+	if(m_frameTimer)
+	{
+		delete m_frameTimer;
+		m_frameTimer = 0;
+	}
+	// Release the cpu monitor
+	if(m_cpuMonitor)
+	{
+		m_cpuMonitor->Release();
+		delete m_cpuMonitor;
+		m_cpuMonitor = 0;
+	}
+	// Release the fps counter
+	if(m_fpsCounter)
+	{
+		delete m_fpsCounter;
+		m_fpsCounter = 0;
 	}
 
 	// Close the Window
