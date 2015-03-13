@@ -138,7 +138,7 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 *******************************************************************
 */
 
-bool ASGraphics::UpdateFrame()
+bool ASGraphics::UpdateFrame(int mouseX, int mouseY)
 {
 	static float rotation = 0.0f;
 
@@ -146,6 +146,9 @@ bool ASGraphics::UpdateFrame()
 	rotation += (float)D3DX_PI * 0.005f;
 	if(rotation > 360.0f)
 		rotation -= 360.0f; // reset to 0
+
+	// Update the position of the camera
+	m_Camera->SetPosition(mouseX*-0.025, mouseY*-0.025, -20.0f);
 
 	// Call the render method and catch its return value into "success"
 	// to determine if the app should terminate or not

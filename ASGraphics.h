@@ -55,13 +55,11 @@ public:
 
 	// Public methods
 	bool Init(int, int, HWND);
-	bool UpdateFrame();
+	bool UpdateFrame(int, int);
+	bool RenderScene(float);
 	void Release();
 
 private:
-	// Private methods
-	bool RenderScene(float);
-
 	// Private member variables
 	ASLightShader*   m_lightShader;
 	ASLight*         m_light;

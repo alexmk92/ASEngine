@@ -23,15 +23,24 @@
 ******************************************************************
 * Includes
 ******************************************************************
-* @Windows.h    - Used to spawn and destroy Windows using the Win API
-* @ASInput.h    - Used to handle input events such as keyboard and mouse
-* @ASGraphics.h - Used to 
+* @Windows.h      - Used to spawn and destroy Windows using the Win API
+* @ASInput.h      - Used to handle input events such as keyboard and mouse
+* @ASGraphics.h   - Used to render graphics to the screen
+* @ASSound.h      - Plays sound using DXSound 
+* @ASFrameTimer.h - High precision timer, used to keep frames synced by frame-rate
+* @ASCPUMonitor.h - Used to query the CPU for how many resources it is currently using
+* @ASFPSCounter.h - Keeps track of how many frames are being used per second
 ******************************************************************
 */
 
 #include <windows.h>
+
 #include "ASInput.h"
 #include "ASGraphics.h"
+#include "ASSound.h"
+#include "ASFrameTimer.h"
+#include "ASCPUMonitor.h"
+#include "ASFPSCounter.h"
 
 /*
 ******************************************************************
@@ -69,6 +78,12 @@ private:
 
 	ASInput*    m_input;
 	ASGraphics* m_graphics;
+	ASSound*    m_environment;
+
+	// Performance modules
+	ASFPSCounter* m_fpsCounter;
+	ASCPUMonitor* m_cpuMonitor;
+	ASFrameTimer* m_frameTimer;
 };
 
 /*

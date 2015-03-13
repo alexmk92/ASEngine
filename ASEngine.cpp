@@ -19,8 +19,9 @@
 
 ASEngine::ASEngine()
 {
-	m_input    = 0;
-	m_graphics = 0;
+	m_input       = 0;
+	m_graphics	  = 0;
+	m_environment = 0;
 }
 
 /*
@@ -29,7 +30,7 @@ ASEngine::ASEngine()
 ******************************************************************
 */
 
-ASEngine::ASEngine(const ASEngine& e) 
+ASEngine::ASEngine(const ASEngine& engine) 
 {}
 
 /*
@@ -69,7 +70,7 @@ bool ASEngine::Init()
 	if(!m_input)
 		return false;
 	else
-		m_input->Init();
+		m_input->Init(m_hInstance, m_hwnd, width, height);
 
 	// Initialise a new ASGraphics object, this will be used to render to the screen
 	// if a null pointer exists, exit gracefully
@@ -79,6 +80,17 @@ bool ASEngine::Init()
 	else
 		success = m_graphics->Init(width, height, m_hwnd);
 
+	// Initalise the sound for the environment 
+	m_environment = new ASSound;
+	if(!m_environment)
+		return false;
+	success = m_environment->Init(m_hwnd);
+	if(!success)
+	{
+		MessageBox(m_hwnd, L"Could not initialise DirectSound", L"Error", MB_OK);
+		return false;
+	}
+		
 	// Catch the value of success, and determine if the window was initalised 
 	// without any errors
 	if(!success)
@@ -86,43 +98,6 @@ bool ASEngine::Init()
 	else
 		return true;
 
-}
-
-/*
-******************************************************************
-* Method: Release()
-******************************************************************
-* Disposes of any resources held onto by the ASEngine class.
-* In order to ensure cleanup is handled with no error we:
-*   1) Call the release method of the object to dispose of its resources
-*   2) delete the pointer to the object
-*   3) Set the pointer to 0, so we safely know its a null pointer
-* This ensures everything is safely de-allocated from memory
-******************************************************************
-*/
-
-void ASEngine::Release()
-{
-	// Release the graphics object
-	if(m_graphics)
-	{
-		m_graphics->Release();
-		delete m_graphics;
-		m_graphics = 0;
-	}
-
-	// Release the input object, jump straight to step 2
-	// as m_input does not allocate any new resources
-	if(m_input)
-	{
-		delete m_input;
-		m_input = 0;
-	}
-
-	// Close the Window
-	CloseASWindow();
-
-	return;
 }
 
 /*
@@ -160,11 +135,18 @@ void ASEngine::Run()
 		// check if the Frame was processed successfully, if not exit the application
 		if(m.message == WM_QUIT)
 			exit = true;
-		else {
+		else 
+		{
 			success = DispatchASEvent();
 			if(!success)
-				exit = true;
+			{
+				MessageBox(m_hwnd, L"Frame Processing Failed", L"Error", MB_OK);
+			}
 		}
+
+		// Check if escape was pressed
+		if(m_input->IsEscapeDown() == true)
+			exit = true;
 	}
 
 	return;
@@ -184,19 +166,23 @@ void ASEngine::Run()
 
 bool ASEngine::DispatchASEvent() 
 {
-	// Flag to determine state
-	bool success = false;
+	// the mouses current X and Y coords
+	int mouseX, mouseY;
 
-	// Check if the user wanted to exit the program
-	if(m_input->IsKeyDown(VK_ESCAPE))
-		return false;
-
-	// Dispatch the event to the graphics object
-	success = m_graphics->UpdateFrame();
+	// Process the input frame
+	bool success = m_input->ProcessFrame();
 	if(!success)
 		return false;
-	else
-		return true;
+
+	// Set the x and y coordinates of the mouse
+	m_input->GetMouseLocation(mouseX, mouseY);
+
+	// Dispatch the event to the graphics object
+	success = m_graphics->UpdateFrame(mouseX, mouseY);
+	if(!success)
+		return false;
+
+	return true;
 }
 
 /*
@@ -335,38 +321,7 @@ void ASEngine::CloseASWindow()
 
 LRESULT CALLBACK ASEngine::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
 {
-	switch(umsg)
-	{
-		// One or more keys on the keyboard are in a down state
-		case WM_KEYDOWN:
-		{
-			m_input->KeyDown((unsigned int)wparam);
-			return 0;
-		}
-		// No key on the keyboard is currently in a down state
-		case WM_KEYUP:
-		{
-			m_input->KeyUp((unsigned int)wparam);
-			return 0;
-		}
-		// Left mouse button is being held down
-		case WM_LBUTTONDOWN:
-		{
-			m_input->LeftMBDown();
-			return 0;
-		}
-		// Left mouse button has been released
-		case WM_LBUTTONUP:
-		{
-			m_input->LeftMBUp();
-			return 0;
-		}
-		// Default message handler
-		default:
-		{
-			return DefWindowProc(hwnd, umsg, wparam, lparam);
-		}
-	}
+	return DefWindowProc(hwnd, umsg, wparam, lparam);
 }
 
 /*
@@ -403,4 +358,48 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 			return EngineInstance->MessageHandler(hwnd, umessage, wparam, lparam);
 		}
 	}
+}
+
+/*
+******************************************************************
+* Method: Release()
+******************************************************************
+* Disposes of any resources held onto by the ASEngine class.
+* In order to ensure cleanup is handled with no error we:
+*   1) Call the release method of the object to dispose of its resources
+*   2) delete the pointer to the object
+*   3) Set the pointer to 0, so we safely know its a null pointer
+* This ensures everything is safely de-allocated from memory
+******************************************************************
+*/
+
+void ASEngine::Release()
+{
+	// Release the graphics object
+	if(m_graphics)
+	{
+		m_graphics->Release();
+		delete m_graphics;
+		m_graphics = 0;
+	}
+	// Release any sound object
+	if(m_environment)
+	{
+		m_environment->Release();
+		delete m_environment;
+		m_environment = 0;
+	}
+	// Release the input object, jump straight to step 2
+	// as m_input does not allocate any new resources
+	if(m_input)
+	{
+		m_input->Release();
+		delete m_input;
+		m_input = 0;
+	}
+
+	// Close the Window
+	CloseASWindow();
+
+	return;
 }

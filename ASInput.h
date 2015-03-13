@@ -12,6 +12,16 @@
 #ifndef _ASINPUT_H_
 #define _ASINPUT_H_
 
+// Pre-processor symbols
+#define DIRECTINPUT_VERSION 0x0800
+
+// Link to external DX libraries required for DX input
+#pragma comment(lib, "dinput8.lib")
+#pragma comment(lib, "dxguid.lib")
+
+// Inlcudes
+#include <dinput.h>
+
 class ASInput 
 {
 public:
@@ -21,21 +31,27 @@ public:
 	~ASInput();
 
 	// Initialise method
-	void Init();
-
-	// Handle key presses
-	void KeyDown(unsigned int);
-	void KeyUp(unsigned int);
-	void LeftMBDown();
-	void LeftMBUp();
-
-	// Flag to check if mouse or key is down
-	bool IsKeyDown(unsigned int);
-	bool IsMBDown();
+	bool Init(HINSTANCE, HWND, int, int);
+	void Release();
+	bool ProcessFrame();
+	bool IsEscapeDown();
+	void GetMouseLocation(int&, int&);
 
 private:
-	bool m_keys[256];
-	bool m_lMbDown;
+	bool ReadKeyboard();
+	bool ReadMouse();
+	void HandleInput();
+
+	// Member variables
+	IDirectInput8*		 m_directInput;
+	IDirectInputDevice8* m_keyboard;
+	IDirectInputDevice8* m_mouse;
+	unsigned char		 m_keyboardState[256];	// holds current keys down
+	DIMOUSESTATE		 m_mouseState;			// holds current mouse press
+	int					 m_screenWidth;			// screen dimens
+	int					 m_screenHeight;
+	int					 m_mouseX;				// mouse pos rel to HWND
+	int				     m_mouseY;
 };
 
 #endif

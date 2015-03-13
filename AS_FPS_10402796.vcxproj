@@ -77,7 +77,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ASCamera.cpp" />
-    <ClCompile Include="ASColorShader.cpp" />
     <ClCompile Include="ASDirect3D.cpp" />
     <ClCompile Include="ASEngine.cpp" />
     <ClCompile Include="ASGraphics.cpp" />
@@ -85,13 +84,12 @@
     <ClCompile Include="ASLight.cpp" />
     <ClCompile Include="ASLightShader.cpp" />
     <ClCompile Include="ASModel.cpp" />
+    <ClCompile Include="ASSound.cpp" />
     <ClCompile Include="ASTexture.cpp" />
-    <ClCompile Include="ASTextureShader.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ASCamera.h" />
-    <ClInclude Include="ASColorShader.h" />
     <ClInclude Include="ASDirect3D.h" />
     <ClInclude Include="ASEngine.h" />
     <ClInclude Include="ASGraphics.h" />
@@ -99,16 +97,12 @@
     <ClInclude Include="ASLight.h" />
     <ClInclude Include="ASLightShader.h" />
     <ClInclude Include="ASModel.h" />
+    <ClInclude Include="ASSound.h" />
     <ClInclude Include="ASTexture.h" />
-    <ClInclude Include="ASTextureShader.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ASColor.ps" />
-    <None Include="ASColor.vs" />
     <None Include="ASLight.ps" />
     <None Include="ASLight.vs" />
-    <None Include="ASTexture.ps" />
-    <None Include="ASTexture.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
