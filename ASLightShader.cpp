@@ -24,6 +24,7 @@ ASLightShader::ASLightShader()
 	m_cBuffer	  = 0;
 	m_sampleState = 0;
 	m_lBuffer     = 0;
+	m_camBuffer   = 0;
 }
 
 /*
@@ -95,15 +96,21 @@ void ASLightShader::Release()
 * @param ID3D11ShaderResourceView* - Pointer to the texture resource we're using
 * @param D3DXVECTOR3 - A vector describing the direction light is poiting
 * @param D3DXVECTOR4 - A vector describing the diffuse color of the light hitting the surface
+* @param D3DXVECTOR3 - The direction the camera vector is facing
+* @param D3DXVECTOR4 - A vector describing the specular color
+* @param float       - Float describing the intensity of the specular (higher number = higher spec)
+* 
 *
 * @return bool - True if the shaders were set and sent successfully, else false
 */
 
 bool ASLightShader::Render(ID3D11DeviceContext* deviceContext, int numIndices, D3DXMATRIX world, D3DXMATRIX view, 
-						   D3DXMATRIX projection, ID3D11ShaderResourceView* texture, D3DXVECTOR3 lightDir, D3DXVECTOR4 diffuse)
+						   D3DXMATRIX projection, ID3D11ShaderResourceView* texture, D3DXVECTOR3 lightDir, D3DXVECTOR4 diffuse, 
+						   D3DXVECTOR4 ambient, D3DXVECTOR3 cameraPos, D3DXVECTOR4 specular, float specularIntensity)
 {
 	// Set the shader, capture its success callback 
-	bool success = SetShaderParameters(deviceContext, world, view, projection, texture, lightDir, diffuse);
+	bool success = SetShaderParameters(deviceContext, world, view, projection, texture, lightDir, diffuse, 
+									   ambient, cameraPos, specular, specularIntensity);
 	if(!success)
 		return false;
 	
@@ -142,6 +149,7 @@ bool ASLightShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 
 	D3D11_BUFFER_DESC  cBufferDesc;
 	D3D11_BUFFER_DESC  lightBufferDesc;
+	D3D11_BUFFER_DESC camBufferDesc;
 	D3D11_SAMPLER_DESC samplerDesc;
 
 	unsigned int numElements;
@@ -245,7 +253,7 @@ bool ASLightShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 
 	// Describe the constant buffer to pass to the Vertex Shader - the CB is used to talk directly to the shader
 	cBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	cBufferDesc.ByteWidth = sizeof(ConstantBuffer);
+	cBufferDesc.ByteWidth = sizeof(ASConstantBuffer);
 	cBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	cBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	cBufferDesc.MiscFlags = 0;
@@ -255,10 +263,24 @@ bool ASLightShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 	if(FAILED(hr))
 		return false;
 
+	// Describe the camera constant buffer.  This tells the vertex shader the direction the camera is 
+	// currently facing, allowing it to process lighting equations
+	camBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	camBufferDesc.ByteWidth = sizeof(ASCameraBuffer);
+	camBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	camBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	camBufferDesc.MiscFlags = 0;
+	camBufferDesc.StructureByteStride = 0;
+
+	// Map the described light buffer to the class light buffer pointer
+	hr = device->CreateBuffer(&camBufferDesc, NULL, &m_camBuffer);
+	if(FAILED(hr))
+		return false;
+
 	// Describe the light constant buffer, this will process the diffuse color and direction of the light.  
 	// Buffers are set as a multiple of 16bytes to ensure DX does not throw any memory alloc errors
 	lightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	lightBufferDesc.ByteWidth = sizeof(LightBuffer);
+	lightBufferDesc.ByteWidth = sizeof(ASLightBuffer);
 	lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	lightBufferDesc.MiscFlags = 0;
@@ -270,55 +292,6 @@ bool ASLightShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 		return false;
 
 	return true;
-}
-
-/*
-******************************************************************
-* METHOD: Release Shader
-******************************************************************
-* Disposes of any resources used by the shader and then sets a null
-* pointer to each of the member variables so we can't access it
-*/
-
-void ASLightShader::ReleaseShader()
-{
-	// Destroy the sampler
-	if(m_sampleState)
-	{
-		m_sampleState->Release();
-		m_sampleState = 0;
-	}
-	// Destroy the light buffer
-	if(m_lBuffer)
-	{
-		m_lBuffer->Release();
-		m_lBuffer = 0;
-	}
-	// Destroy constant buffer
-	if(m_cBuffer)
-	{
-		m_cBuffer->Release();
-		m_cBuffer = 0;
-	}
-	// Destroy the input layout
-	if(m_iLayout)
-	{
-		m_iLayout->Release();
-		m_iLayout = 0;
-	}
-	// Destroy the pixel shader
-	if(m_pShader)
-	{
-		m_pShader->Release();
-		m_pShader = 0;
-	}
-	// Destroy the vertex shader
-	if(m_vShader)
-	{
-		m_vShader->Release();
-		m_vShader = 0;
-	}
-	return;
 }
 
 /*
@@ -363,21 +336,31 @@ void ASLightShader::RaiseShaderError(ID3D10Blob* msg, HWND handle, WCHAR* shader
 * objects to the screen in ASGraphics::RenderFrame()
 *
 * @param ID3D11DeviceContext* - The device we are using
-* @param D3DXMATRIX - the world matrix our objects live in
-* @param D3DXMATRIX - the view matrix (what we currently see)
-* @param D3DXMATRIX - the projection matrix
-* @param 
-* 
+* @param D3DXMATRIX  - the world matrix our objects live in
+* @param D3DXMATRIX  - the view matrix (what we currently see)
+* @param D3DXMATRIX  - the projection matrix
+* @param D3DXVECTOR3 - The vector holding direction of light
+* @param D3DXVECTOR4 - the diffuse color of the light
+* @param D3DXVECTOR4 - the ambient color of the light
+* @param D3DXVECTOR3 - the direction the camera is facing
+* @param D3DXVECTOR4 - the specular color of the light
+* @param float       - the intensity of the specular (higher = more reflection)
+*
 * @return bool - True if the shader was set, else false
 */
 
 bool ASLightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX world, D3DXMATRIX view, D3DXMATRIX projection, 
-										ID3D11ShaderResourceView* texture, D3DXVECTOR3 lightDir, D3DXVECTOR4  diffuse)
+										ID3D11ShaderResourceView* texture, D3DXVECTOR3 lightDir, D3DXVECTOR4  diffuse, D3DXVECTOR4 ambient,
+										D3DXVECTOR3 cameraPos, D3DXVECTOR4 specular, float specularIntensity)
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE res;
-	ConstantBuffer* cBuffer;
-	LightBuffer*    lBuffer;
+
+	// Buffer pointers to be passed to the shader
+	ASConstantBuffer* cBuffer;
+	ASLightBuffer*    lBuffer;
+	ASCameraBuffer*   camBuffer;
+
 	unsigned int bufferNum;
 
 	// Transpose matrices and prepare them for shader
@@ -385,13 +368,16 @@ bool ASLightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DX
 	D3DXMatrixTranspose(&view, &view);
 	D3DXMatrixTranspose(&projection, &projection);
 
+	/*
+	* CONSTANT BUFFER
+	*/
 	// Lock the constant buffer so it can be written to
 	hr = deviceContext->Map(m_cBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
 	if(FAILED(hr))
 		return false;
 
 	// Attain a refernece to the constant buffer data
-	cBuffer = (ConstantBuffer*)res.pData;
+	cBuffer = (ASConstantBuffer*)res.pData;
 
 	// Write the matrices to the constant buffer to be processed by the shader
 	cBuffer->world = world;
@@ -401,25 +387,51 @@ bool ASLightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DX
 	// Unlock the constant buffer - it can now be acquired for write by another process
 	deviceContext->Unmap(m_cBuffer, 0);
 
-	// Set the position of the constant buffer in the vertex shader, and then update the VS with the CB values
-	// Also set the texture in the pixel shader
+	// Set the position of the constant buffer in the vertex shader
 	bufferNum = 0;
 	deviceContext->VSSetConstantBuffers(bufferNum, 1, &m_cBuffer);
+
+	/*
+	* CAMERA BUFFER
+	*/
+	hr = deviceContext->Map(m_camBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
+	if(FAILED(hr))
+		return false;
+
+	// Attain a refernece to the camera buffer data
+	camBuffer = (ASCameraBuffer*)res.pData;
+
+	// Write the matrices to the constant buffer to be processed by the shader
+	camBuffer->cameraPos = cameraPos;
+	camBuffer->padding = 0.0f;
+
+	// Unlock the constant buffer - it can now be acquired for write by another process
+	deviceContext->Unmap(m_camBuffer, 0);
+
+	// Set the position of the constant buffer in the vertex shader, and then update the VS with the CB values
+	// Also set the texture in the pixel shader
+	bufferNum = 1;
+	deviceContext->VSSetConstantBuffers(bufferNum, 1, &m_camBuffer);
 	deviceContext->PSSetShaderResources(0, 1, &texture);
 	
+	/*
+	* LIGHT BUFFER
+	*/
 	// Lock the light buffer so that it can be written to
 	hr = deviceContext->Map(m_lBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
 	if(FAILED(hr))
 		return false;
 
 	// Attain a reference to the light buffer data
-	lBuffer = (LightBuffer*)res.pData;
+	lBuffer = (ASLightBuffer*)res.pData;
 
 	// Write the info from the buffer to m_lBuffer to be processed by the Vertex and Pixel shaders,
 	// also add padding to ensure the struct remains a multiple of 16 - this struct is 8 bytes
-	lBuffer->diffuse  = diffuse;
-	lBuffer->lightDir = lightDir;
-	lBuffer->padding  = 0.0f;
+	lBuffer->diffuse		   = diffuse;
+	lBuffer->ambient		   = ambient;
+	lBuffer->lightDir		   = lightDir;
+	lBuffer->specularColor	   = specular;
+	lBuffer->specularIntensity = specularIntensity;
 
 	// Release the buffer, it can now be acquired for write by another process
 	deviceContext->Unmap(m_lBuffer, 0);
@@ -455,5 +467,60 @@ void ASLightShader::RenderShader(ID3D11DeviceContext* deviceContext, int numIndi
 	// Render the model
 	deviceContext->DrawIndexed(numIndices, 0, 0);
 
+	return;
+}
+
+/*
+******************************************************************
+* METHOD: Release Shader
+******************************************************************
+* Disposes of any resources used by the shader and then sets a null
+* pointer to each of the member variables so we can't access it
+*/
+
+void ASLightShader::ReleaseShader()
+{
+	// Destroy the sampler
+	if(m_sampleState)
+	{
+		m_sampleState->Release();
+		m_sampleState = 0;
+	}
+	// Destroy the camera buffer
+	if(m_camBuffer)
+	{
+		m_camBuffer->Release();
+		m_camBuffer = 0;
+	}
+	// Destroy the light buffer
+	if(m_lBuffer)
+	{
+		m_lBuffer->Release();
+		m_lBuffer = 0;
+	}
+	// Destroy constant buffer
+	if(m_cBuffer)
+	{
+		m_cBuffer->Release();
+		m_cBuffer = 0;
+	}
+	// Destroy the input layout
+	if(m_iLayout)
+	{
+		m_iLayout->Release();
+		m_iLayout = 0;
+	}
+	// Destroy the pixel shader
+	if(m_pShader)
+	{
+		m_pShader->Release();
+		m_pShader = 0;
+	}
+	// Destroy the vertex shader
+	if(m_vShader)
+	{
+		m_vShader->Release();
+		m_vShader = 0;
+	}
 	return;
 }

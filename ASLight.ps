@@ -15,23 +15,29 @@ Texture2D    shaderTexture;
 SamplerState sampleType;
 
 // This buffer described lighting on a pixel 
-// @member float4 - The difuse lighting color 
 // @member float3 - The direction the light is hitting the pixel from
-// @member float  - 1 byte of padding to make the structure 8byte wide 
-//                  this is more about being efficient with memory allocation
+// @member float4 - The difuse lighting color 
+// @member float4 - The intensity of ambient color in the scene (global illumination)
+// @member float4 - The color of the specular lighting (this is a highlight on the surface)
+// @member float  - The intensity of the specular light (0.0f to 1.0f)
+//
+// @note : memory allocated in 4byte chunks, failure to do so will effect the mapping
 cbuffer LightBuffer 
 {
 	float4 diffuseColor;
+	float4 ambientColor;
 	float3 lightDirection;
-	float  padding;			
+	float  specularIntensity;
+	float4 specularColor;	
 };
 
 // TYPE DEFS
 struct PixelInputType
 {
-	float4 position : SV_POSITION;
-	float4 texCoord : TEXCOORD0;
-	float3 normal   : NORMAL;
+	float4 position : SV_POSITION;	// The position of the pixel rel to the world
+	float2 texCoord : TEXCOORD0;	// Texture coordinate mapping relative to the mesh
+	float3 normal   : NORMAL;		// Vertex normal to calculate lighting
+	float3 viewDir  : TEXCOORD1;	// Direction the camera is viewing the object from (apply specular)
 };
 
 /*
@@ -43,28 +49,50 @@ struct PixelInputType
 
 float4 LightPixelShader(PixelInputType inputPixel) : SV_TARGET
 {
+	// local vars
 	float4 texColor;		// the color sampled from the texture
-	float3 lightDir;		// the direction the light is hitting the surface
+	float3 reflection;		// how much the light reflects on the surface (specular intensity)
 	float  lightIntensity;	// the brightness of the light 0.0f to 1.0f
+	float3 lightDir;		// the direction the light is hitting the surface
 	float4 color;			// the diffuse color
+	float4 specular;		// the color of the specular
 
 	// Sample the pixels color from the texture using the sampler defined above
 	texColor = shaderTexture.Sample(sampleType, inputPixel.texCoord);
 
-	/*
-	* Lighting equations:
-	*/
+	// all pixels in the scene will now recieve some ambient color, giving a more realistic effect
+	color = ambientColor;
+
+	// Initialise the specular color (no specular)
+	specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// Invert the light direction for the calculations, and then calculate the intensity of light
 	// which is being emitted to the current pixel.  Intensity is the dot product of both the normal vector and 
 	// the light direction vector
 	lightDir = -lightDirection;
 	lightIntensity = saturate(dot(inputPixel.normal, lightDir));
+	
+	// Check that the light intensist is greater than 0.0f, if it is then add the diffuse color to the
+	// current pixel, otherwise we'll see some deformation in the output color (due to ambient being substracted from diffuse)
+	if(lightIntensity > 0.0f)
+	{
+		color += (diffuseColor * lightIntensity);
+		color = saturate(color);
+
+		// Calculate the reflection on the surface, based on direction of light and the intensity
+		reflection = normalize(2 * lightIntensity * inputPixel.normal - lightDir);
+
+		// Determine the size of the specular (based on the mesh's material - this is done off of the normals)
+		// Smaller angles between the light source and camera view result in greater specular reflection
+		specular = pow(saturate(dot(reflection, inputPixel.viewDir)), specularIntensity);
+	}
 
 	// Set the diffuse color for the pixel based on the diffuse color mul by intensity, then multiply
 	// the texture color by the diffuse color to get the pixels final color.
-	color = saturate(diffuseColor * lightIntensity);
 	color = color * texColor;
+
+	// Add the specular to the output color (no specular if light intensity is < 0.0f)
+	color = saturate(color + specular);
 
 	return color;
 }

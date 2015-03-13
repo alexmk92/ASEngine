@@ -21,6 +21,7 @@ ASModel::ASModel()
 	m_vertexBuffer = 0;
 	m_indexBuffer  = 0;
 	m_texture      = 0;
+	m_mesh         = 0;
 }
 
 /*
@@ -49,14 +50,22 @@ ASModel::~ASModel()
 * index buffers and then captures the result.
 *
 * @param ID3D11Device* - The rendering device D3D is using
+* @param WCHAR*        - Pointer to the texture file the model uses
+* @param char*         - Pointer to the model file the model is loaded from
 *
 * @return bool - True if initialisation succeeded, else false
 ******************************************************************
 */
 
-bool ASModel::Init(ID3D11Device* device, WCHAR* textureFile)
+bool ASModel::Init(ID3D11Device* device, WCHAR* textureFile, char* modelFile)
 {
-	bool success = InitBuffers(device);
+	// Load model data into constant buffer
+	bool success = LoadModel(modelFile);
+	if(!success)
+		return false;
+
+	// Initialise the buffers to begin rendering
+	success = InitBuffers(device);
 	if(!success)
 		return false;
 
@@ -81,6 +90,7 @@ void ASModel::Release()
 {
 	ReleaseTexture();
 	ReleaseBuffers();
+	ReleaseModel();
 	return;
 }
 
@@ -152,10 +162,6 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	D3D11_SUBRESOURCE_DATA vData;
 	D3D11_SUBRESOURCE_DATA iData;
 
-	// 
-	m_numVertices = 3;
-	m_numIndices  = 3;
-
 	// Create an array to hold the vertices
 	vertices = new ASVertex[m_numVertices];
 	if(!vertices)
@@ -166,24 +172,18 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	if(!indices)
 		return false;
 
-	// Populate the vertex and index arrays with data to be passed to the shaders,
-	// always draw clock-wise, failure to do so will result in triangle not being drawn
-	// due to BACK_FACE_CULL flag set in the rasteriser
-	vertices[0].position = D3DXVECTOR3(-1.0f, -1.0f, 0.0f);  // Bottom left.
-	vertices[0].texture	 = D3DXVECTOR2(0.0f, 1.0f);
-	vertices[0].normal   = D3DXVECTOR3(0.0f, 0.0f, -1.0f);
+	// Populate the indice and vertice arrays with data from the model
+	for(unsigned int i = 0; i < m_numVertices; i++)
+	{
+		// Set all information for this vertice, reading data from the mesh
+		vertices[i].position = D3DXVECTOR3(m_mesh[i].posX, m_mesh[i].posY, m_mesh[i].posZ);
+		vertices[i].texture  = D3DXVECTOR2(m_mesh[i].texU, m_mesh[i].texV);
+		vertices[i].normal   = D3DXVECTOR3(m_mesh[i].normX, m_mesh[i].normY, m_mesh[i].normZ);
 
-	vertices[1].position = D3DXVECTOR3(0.0f, 1.0f, 0.0f);  // Top middle.
-	vertices[1].texture	 = D3DXVECTOR2(0.5f, 0.0f);
-	vertices[1].normal = D3DXVECTOR3(0.0f, 0.0f, -1.0f);
-
-	vertices[2].position = D3DXVECTOR3(1.0f, -1.0f, 0.0f);  // Bottom right.
-	vertices[2].texture	 = D3DXVECTOR2(1.0f, 1.0f);
-	vertices[2].normal = D3DXVECTOR3(0.0f, 0.0f, -1.0f);
-
-	indices[0] = 0;  // Bottom left.
-	indices[1] = 1;  // Top middle.
-	indices[2] = 2;  // Bottom right.
+		// Set the index for this vertice in the index buffer - this is used for fast computation
+		// when querying for vertices later in the rendering pipeline
+		indices[i] = i;
+	}
 
 	// Describe the vertex buffer, then call CreateBuffer on the device, this
 	// will return a pointer to the buffer
@@ -324,6 +324,85 @@ void ASModel::RenderBuffers(ID3D11DeviceContext* deviceContext)
 
 	// Set the type of primitive that should be rendered for the Vertex buffer
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	return;
+}
+
+/*
+******************************************************************
+* METHOD: Load Model
+******************************************************************
+* Reads all vertice information from a model file (.obj), this 
+* operation gets the total number of vertices and indices in the file and 
+* then populates the Mesh struct with vertex information, this information
+* is then used in the InitBuffers method
+*
+* @param char* - a pointer to the object file to read from
+******************************************************************
+*/
+
+bool ASModel::LoadModel(char* objectFile)
+{
+	ifstream fileIn;
+	char readChar;
+	
+	// Open the file and check if we opened it without error, else kill program
+	fileIn.open(objectFile);
+	if(fileIn.fail())
+		return false;
+
+	// Keep reading from the file until we encounter ":" (eof), this will tell the number of vertices
+	fileIn.get(readChar);
+	while(readChar != ':')
+		fileIn.get(readChar);
+
+	// Read the total number of vertices into global vertex count - total indices will be the same
+	// as the number of vertices, so set that here too
+	fileIn >> m_numVertices;
+	m_numIndices = m_numVertices;
+
+	// Create the mesh
+	m_mesh = new ASMesh[m_numVertices];
+	if(!m_mesh)
+		return false;
+
+	// 
+	fileIn.get(readChar);
+	while(readChar != ':')
+		fileIn.get(readChar);
+	fileIn.get(readChar);
+	fileIn.get(readChar);
+	
+	// Read in vertex data from model - each cycle will build one triangle, a triangle is composed
+	// of three sets of coordinates (pos, tex, norm) - these are passed to shaders for loading mesh
+	for(unsigned int i = 0; i < m_numVertices; i++)
+	{
+		fileIn >> m_mesh[i].posX >> m_mesh[i].posY >> m_mesh[i].posZ;			// read next three floats into x,y,z
+		fileIn >> m_mesh[i].texU >> m_mesh[i].texV;								// read next two floats into u,v
+		fileIn >> m_mesh[i].normX >> m_mesh[i].normY >> m_mesh[i].normZ;		// read next three float into x,y,z
+	}
+
+	// Close the file
+	fileIn.close();
+
+	return true;
+}
+
+/*
+******************************************************************
+* METHOD: Release Model
+******************************************************************
+* Dispose of any resources held by the mesh to safely dealloc it
+******************************************************************
+*/
+
+void ASModel::ReleaseModel()
+{
+	if(m_mesh)
+	{
+		delete [] m_mesh;
+		m_mesh = 0;
+	}
 
 	return;
 }

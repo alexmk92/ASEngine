@@ -15,11 +15,16 @@
 * Includes
 ******************************************************************
 * + ASTextureShader.h - Supports texturing of models
+* + fstream - allows us to read files (for OBJ model loading)
 */
 
 #include <d3d11.h>
 #include <d3dx10math.h>
 #include "ASTexture.h"
+#include <fstream>
+
+// Use the std namespace to make our life easier calling funcs from the namespace
+using namespace std;
 
 /*
 ******************************************************************
@@ -37,6 +42,22 @@ private:
 		D3DXVECTOR2 texture;
 		D3DXVECTOR3 normal;
 	};
+	// Struct to hold data on the model, this is then sent to the rendering pipeline
+	// to draw the model to the scene
+	struct ASMesh
+	{
+		// Vertex positions for each vertice
+		float posX;
+		float posY;
+		float posZ;
+		// Texture coordinates for each vertice
+		float texU;
+		float texV;
+		// Normals for each vertice, used to be passed to PS for lighting
+		float normX;
+		float normY;
+		float normZ;
+	};
 
 public:
 	// Constructors and Destructors
@@ -45,7 +66,7 @@ public:
 	~ASModel();
 
 	// Methods to manage the models buffers
-	bool Init(ID3D11Device*, WCHAR*);
+	bool Init(ID3D11Device*, WCHAR*, char*);
 	void Release();
 	void Render(ID3D11DeviceContext*);
 
@@ -64,6 +85,10 @@ private:
 	bool LoadTexture(ID3D11Device*, WCHAR*);
 	void ReleaseTexture();
 
+	// Functions to handle the loading and disposal of a model
+	bool LoadModel(char*);
+	void ReleaseModel();
+
 	// Private member variables
 	ID3D11Buffer* m_vertexBuffer;
 	ID3D11Buffer* m_indexBuffer;
@@ -72,6 +97,7 @@ private:
 	int m_numIndices;
 
 	ASTexture* m_texture;
+	ASMesh*    m_mesh;
 
 };
 

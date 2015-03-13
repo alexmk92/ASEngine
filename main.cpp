@@ -1,4 +1,3 @@
-#include "ASEngine.h";
 
 /*
 ******************************************************************
@@ -10,6 +9,8 @@
 * goes wrong it will clean up gracefully by releasing objects
 *******************************************************************
 */
+
+#include "ASEngine.h";
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pCmdline, int iCmdShow)
 {

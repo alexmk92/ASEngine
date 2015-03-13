@@ -91,7 +91,7 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 
 	// Initialise the model, passing the rendering device 
-	success = m_Model->Init(m_D3D->GetDevice(), L"./Textures/seafloor.dds");
+	success = m_Model->Init(m_D3D->GetDevice(), L"./textures/seafloor.dds", "./models/cube.txt");
 	if(!success)
 	{
 		MessageBox(hwnd, L"Error when initialising the model in ASGraphics.cpp, please check ASModel.cpp for errors.", L"Error", MB_OK);
@@ -115,8 +115,11 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	if(!m_light)
 		return false;
 
+	m_light->SetAmbient(0.15f, 0.15f, 0.15f, 1.0f);
+	m_light->SetDiffuse(1.0f, 1.0f, 1.0f, 1.0f);
 	m_light->SetDirection(0.0f, 0.0f, 1.0f);
-	m_light->SetDiffuse(0.8f, 0.0f, 0.8f, 1.0f); // Purple color light 
+	m_light->SetSpecular(1.0f, 1.0f, 1.0f, 1.0f);
+	m_light->SetSpecularIntensity(32.0f);
 
 	return true;
 }
@@ -140,7 +143,7 @@ bool ASGraphics::UpdateFrame()
 	static float rotation = 0.0f;
 
 	// Update the rotation variable on each frame (used a static var so it doesn't re-init to 0 on each call)
-	rotation += (float)D3DX_PI * 0.01f;
+	rotation += (float)D3DX_PI * 0.005f;
 	if(rotation > 360.0f)
 		rotation -= 360.0f; // reset to 0
 
@@ -190,7 +193,8 @@ bool ASGraphics::RenderScene(float rotation)
 
 	// Render the model using the shader, using the light object to apply lighting to the scene
 	success = m_lightShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection, m_Model->GetTexture(),
-									m_light->GetLightDirection(), m_light->GetDiffuseColor());
+									m_light->GetLightDirection(), m_light->GetDiffuseColor(), m_light->GetAmbientColor(), m_Camera->GetPosition(), 
+									m_light->GetSpecularColor(), m_light->GetSpecularIntensity());
 	if(!success)
 		return false;
 
