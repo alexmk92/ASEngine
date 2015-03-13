@@ -6,7 +6,7 @@
 * Implement all function prototype in ASTextureShader.h
 */
 
-#include "ASTextureShader.h"
+#include "ASLightShader.h"
 
 /*
 ******************************************************************
@@ -16,13 +16,14 @@
 * initialised later
 */
 
-ASTextureShader::ASTextureShader()
+ASLightShader::ASLightShader()
 {
 	m_vShader     = 0;
 	m_pShader     = 0;
 	m_iLayout	  = 0;
 	m_cBuffer	  = 0;
 	m_sampleState = 0;
+	m_lBuffer     = 0;
 }
 
 /*
@@ -31,7 +32,7 @@ ASTextureShader::ASTextureShader()
 ******************************************************************
 */
 
-ASTextureShader::ASTextureShader(const ASTextureShader& shader)
+ASLightShader::ASLightShader(const ASLightShader& shader)
 {}
 
 /*
@@ -40,7 +41,7 @@ ASTextureShader::ASTextureShader(const ASTextureShader& shader)
 ******************************************************************
 */
 
-ASTextureShader::~ASTextureShader()
+ASLightShader::~ASLightShader()
 {}
 
 /*
@@ -55,9 +56,11 @@ ASTextureShader::~ASTextureShader()
 * @return bool - True if the shader initialised successfully, else false
 */
 
-bool ASTextureShader::Init(ID3D11Device* device, HWND handle)
+bool ASLightShader::Init(ID3D11Device* device, HWND handle)
 {
-	bool success = InitShader(device, handle, L"./ASTexture.vs", L"./ASTexture.ps");
+	// Load vertex and pixel shaders from source file, these will be compiled via HLSL in
+	// the InitShader method
+	bool success = InitShader(device, handle, L"./ASLight.vs", L"./ASLight.ps");
 	if(!success)
 		return false;
 	else
@@ -71,7 +74,7 @@ bool ASTextureShader::Init(ID3D11Device* device, HWND handle)
 * Calls the private implementation of the ReleaseShader() method
 */
 
-void ASTextureShader::Release() 
+void ASLightShader::Release() 
 {
 	ReleaseShader();
 	return;
@@ -90,14 +93,17 @@ void ASTextureShader::Release()
 * @param D3DXMATRIX - The View Matrix
 * @param D3DXMATRIX - The Projection Matrix
 * @param ID3D11ShaderResourceView* - Pointer to the texture resource we're using
+* @param D3DXVECTOR3 - A vector describing the direction light is poiting
+* @param D3DXVECTOR4 - A vector describing the diffuse color of the light hitting the surface
 *
 * @return bool - True if the shaders were set and sent successfully, else false
 */
 
-bool ASTextureShader::Render(ID3D11DeviceContext* deviceContext, int numIndices,
-							 D3DXMATRIX world, D3DXMATRIX view, D3DXMATRIX projection, ID3D11ShaderResourceView* texture)
+bool ASLightShader::Render(ID3D11DeviceContext* deviceContext, int numIndices, D3DXMATRIX world, D3DXMATRIX view, 
+						   D3DXMATRIX projection, ID3D11ShaderResourceView* texture, D3DXVECTOR3 lightDir, D3DXVECTOR4 diffuse)
 {
-	bool success = SetShaderParameters(deviceContext, world, view, projection, texture);
+	// Set the shader, capture its success callback 
+	bool success = SetShaderParameters(deviceContext, world, view, projection, texture, lightDir, diffuse);
 	if(!success)
 		return false;
 	
@@ -122,7 +128,7 @@ bool ASTextureShader::Render(ID3D11DeviceContext* deviceContext, int numIndices,
 * @return bool - True if shader init successfully, else false
 */
 
-bool ASTextureShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile, WCHAR* psFile)
+bool ASLightShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile, WCHAR* psFile)
 {
 	HRESULT hr;
 
@@ -132,14 +138,17 @@ bool ASTextureShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	ID3D10Blob* psBuffer = 0;
 
 	// Other descriptors for buffer
-	D3D11_BUFFER_DESC cBufferDesc;
+	D3D11_INPUT_ELEMENT_DESC polyLayout[3];	// mapped to the vector in ASLight.h to be passed to shader
+
+	D3D11_BUFFER_DESC  cBufferDesc;
+	D3D11_BUFFER_DESC  lightBufferDesc;
 	D3D11_SAMPLER_DESC samplerDesc;
-	D3D11_INPUT_ELEMENT_DESC polyLayout[2];
+
 	unsigned int numElements;
 
 	// Compile shaders into buffers - any errors are caught and pushed to an error stack, if the 
 	// file is not found user is alerted by a popup message
-	hr = D3DX11CompileFromFile(vsFile, NULL, NULL, "TextureVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 
+	hr = D3DX11CompileFromFile(vsFile, NULL, NULL, "LightVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 
 							   0, NULL, &vsBuffer, &err, NULL);
 	if(FAILED(hr))
 	{
@@ -152,7 +161,7 @@ bool ASTextureShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	}
 
 	// Compile the pixel shader
-	hr = D3DX11CompileFromFile(psFile, NULL, NULL, "TexturePixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS,
+	hr = D3DX11CompileFromFile(psFile, NULL, NULL, "LightPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS,
 							  0, NULL, &psBuffer, &err, NULL);
 	if(FAILED(hr))
 	{
@@ -192,6 +201,15 @@ bool ASTextureShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	polyLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	polyLayout[1].InstanceDataStepRate = 0;
 
+	// Describe the vertex normal information, this will be loaded into the input layout var
+	polyLayout[2].SemanticName = "NORMAL";
+	polyLayout[2].SemanticIndex = 0;
+	polyLayout[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	polyLayout[2].InputSlot = 0;
+	polyLayout[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+	polyLayout[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	polyLayout[2].InstanceDataStepRate = 0;
+
 	// Create the input layout ont he device using our rendering device.
 	numElements = sizeof(polyLayout) / sizeof(polyLayout[0]);
 	hr = device->CreateInputLayout(polyLayout, numElements, vsBuffer->GetBufferPointer(),
@@ -204,18 +222,6 @@ bool ASTextureShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	psBuffer->Release();
 	vsBuffer = 0;
 	psBuffer = 0;
-
-	// Describe the constant buffer to pass to the Vertex Shader - the CB is used to talk directly to the shader
-	cBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	cBufferDesc.ByteWidth = sizeof(ContextBufferType);
-	cBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cBufferDesc.MiscFlags = 0;
-	cBufferDesc.StructureByteStride = 0;
-
-	hr = device->CreateBuffer(&cBufferDesc, NULL, &m_cBuffer);
-	if(FAILED(hr))
-		return false;
 
 	// Create a texture sampler to map the texture to the object
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -237,6 +243,32 @@ bool ASTextureShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	if(FAILED(hr))
 		return false;
 
+	// Describe the constant buffer to pass to the Vertex Shader - the CB is used to talk directly to the shader
+	cBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	cBufferDesc.ByteWidth = sizeof(ConstantBuffer);
+	cBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cBufferDesc.MiscFlags = 0;
+	cBufferDesc.StructureByteStride = 0;
+
+	hr = device->CreateBuffer(&cBufferDesc, NULL, &m_cBuffer);
+	if(FAILED(hr))
+		return false;
+
+	// Describe the light constant buffer, this will process the diffuse color and direction of the light.  
+	// Buffers are set as a multiple of 16bytes to ensure DX does not throw any memory alloc errors
+	lightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	lightBufferDesc.ByteWidth = sizeof(LightBuffer);
+	lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	lightBufferDesc.MiscFlags = 0;
+	lightBufferDesc.StructureByteStride = 0;
+
+	// Map the described light buffer to the class light buffer pointer
+	hr = device->CreateBuffer(&lightBufferDesc, NULL, &m_lBuffer);
+	if(FAILED(hr))
+		return false;
+
 	return true;
 }
 
@@ -248,13 +280,19 @@ bool ASTextureShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 * pointer to each of the member variables so we can't access it
 */
 
-void ASTextureShader::ReleaseShader()
+void ASLightShader::ReleaseShader()
 {
 	// Destroy the sampler
 	if(m_sampleState)
 	{
 		m_sampleState->Release();
 		m_sampleState = 0;
+	}
+	// Destroy the light buffer
+	if(m_lBuffer)
+	{
+		m_lBuffer->Release();
+		m_lBuffer = 0;
 	}
 	// Destroy constant buffer
 	if(m_cBuffer)
@@ -291,7 +329,7 @@ void ASTextureShader::ReleaseShader()
 * to load Pixel or Vertex shaders from their files
 */
 
-void ASTextureShader::RaiseShaderError(ID3D10Blob* msg, HWND handle, WCHAR* shaderName)
+void ASLightShader::RaiseShaderError(ID3D10Blob* msg, HWND handle, WCHAR* shaderName)
 {
 	ofstream fout;
 
@@ -333,12 +371,13 @@ void ASTextureShader::RaiseShaderError(ID3D10Blob* msg, HWND handle, WCHAR* shad
 * @return bool - True if the shader was set, else false
 */
 
-bool ASTextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX world, D3DXMATRIX view, D3DXMATRIX projection, 
-										  ID3D11ShaderResourceView* texture)
+bool ASLightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX world, D3DXMATRIX view, D3DXMATRIX projection, 
+										ID3D11ShaderResourceView* texture, D3DXVECTOR3 lightDir, D3DXVECTOR4  diffuse)
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE res;
-	ContextBufferType* shader;
+	ConstantBuffer* cBuffer;
+	LightBuffer*    lBuffer;
 	unsigned int bufferNum;
 
 	// Transpose matrices and prepare them for shader
@@ -352,12 +391,12 @@ bool ASTextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 		return false;
 
 	// Attain a refernece to the constant buffer data
-	shader = (ContextBufferType*)res.pData;
+	cBuffer = (ConstantBuffer*)res.pData;
 
 	// Write the matrices to the constant buffer to be processed by the shader
-	shader->world = world;
-	shader->view  = view;
-	shader->projection = projection;
+	cBuffer->world = world;
+	cBuffer->view  = view;
+	cBuffer->projection = projection;
 
 	// Unlock the constant buffer - it can now be acquired for write by another process
 	deviceContext->Unmap(m_cBuffer, 0);
@@ -368,6 +407,28 @@ bool ASTextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 	deviceContext->VSSetConstantBuffers(bufferNum, 1, &m_cBuffer);
 	deviceContext->PSSetShaderResources(0, 1, &texture);
 	
+	// Lock the light buffer so that it can be written to
+	hr = deviceContext->Map(m_lBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
+	if(FAILED(hr))
+		return false;
+
+	// Attain a reference to the light buffer data
+	lBuffer = (LightBuffer*)res.pData;
+
+	// Write the info from the buffer to m_lBuffer to be processed by the Vertex and Pixel shaders,
+	// also add padding to ensure the struct remains a multiple of 16 - this struct is 8 bytes
+	lBuffer->diffuse  = diffuse;
+	lBuffer->lightDir = lightDir;
+	lBuffer->padding  = 0.0f;
+
+	// Release the buffer, it can now be acquired for write by another process
+	deviceContext->Unmap(m_lBuffer, 0);
+
+	// Set the position of the constant buffer in the pixel shader - this will then be used for drawing
+	// at the next stage of the render pipeline
+	bufferNum = 0;
+	deviceContext->PSSetConstantBuffers(bufferNum, 1, &m_lBuffer);
+
 	return true;
 }
 
@@ -383,7 +444,7 @@ bool ASTextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 * @param int - the number of indices in the model
 */
 
-void ASTextureShader::RenderShader(ID3D11DeviceContext* deviceContext, int numIndices)
+void ASLightShader::RenderShader(ID3D11DeviceContext* deviceContext, int numIndices)
 {
 	// Set the input layout, vertex shader and pixel shader
 	deviceContext->IASetInputLayout(m_iLayout);

@@ -82,6 +82,8 @@
     <ClCompile Include="ASEngine.cpp" />
     <ClCompile Include="ASGraphics.cpp" />
     <ClCompile Include="ASInput.cpp" />
+    <ClCompile Include="ASLight.cpp" />
+    <ClCompile Include="ASLightShader.cpp" />
     <ClCompile Include="ASModel.cpp" />
     <ClCompile Include="ASTexture.cpp" />
     <ClCompile Include="ASTextureShader.cpp" />
@@ -94,6 +96,8 @@
     <ClInclude Include="ASEngine.h" />
     <ClInclude Include="ASGraphics.h" />
     <ClInclude Include="ASInput.h" />
+    <ClInclude Include="ASLight.h" />
+    <ClInclude Include="ASLightShader.h" />
     <ClInclude Include="ASModel.h" />
     <ClInclude Include="ASTexture.h" />
     <ClInclude Include="ASTextureShader.h" />
@@ -101,6 +105,8 @@
   <ItemGroup>
     <None Include="ASColor.ps" />
     <None Include="ASColor.vs" />
+    <None Include="ASLight.ps" />
+    <None Include="ASLight.vs" />
     <None Include="ASTexture.ps" />
     <None Include="ASTexture.vs" />
   </ItemGroup>

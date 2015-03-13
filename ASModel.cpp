@@ -143,7 +143,7 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 {
 	HRESULT hr;
 
-	VertexType*    vertices;
+	ASVertex*      vertices;
 	unsigned long* indices;
 
 	D3D11_BUFFER_DESC vBufferDesc;
@@ -157,7 +157,7 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	m_numIndices  = 3;
 
 	// Create an array to hold the vertices
-	vertices = new VertexType[m_numVertices];
+	vertices = new ASVertex[m_numVertices];
 	if(!vertices)
 		return false;
 
@@ -171,12 +171,15 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	// due to BACK_FACE_CULL flag set in the rasteriser
 	vertices[0].position = D3DXVECTOR3(-1.0f, -1.0f, 0.0f);  // Bottom left.
 	vertices[0].texture	 = D3DXVECTOR2(0.0f, 1.0f);
+	vertices[0].normal   = D3DXVECTOR3(0.0f, 0.0f, -1.0f);
 
 	vertices[1].position = D3DXVECTOR3(0.0f, 1.0f, 0.0f);  // Top middle.
 	vertices[1].texture	 = D3DXVECTOR2(0.5f, 0.0f);
+	vertices[1].normal = D3DXVECTOR3(0.0f, 0.0f, -1.0f);
 
 	vertices[2].position = D3DXVECTOR3(1.0f, -1.0f, 0.0f);  // Bottom right.
 	vertices[2].texture	 = D3DXVECTOR2(1.0f, 1.0f);
+	vertices[2].normal = D3DXVECTOR3(0.0f, 0.0f, -1.0f);
 
 	indices[0] = 0;  // Bottom left.
 	indices[1] = 1;  // Top middle.
@@ -185,7 +188,7 @@ bool ASModel::InitBuffers(ID3D11Device* device)
 	// Describe the vertex buffer, then call CreateBuffer on the device, this
 	// will return a pointer to the buffer
 	vBufferDesc.Usage				= D3D11_USAGE_DEFAULT;
-	vBufferDesc.ByteWidth			= sizeof(VertexType) * m_numVertices;
+	vBufferDesc.ByteWidth			= sizeof(ASVertex) * m_numVertices;
 	vBufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
 	vBufferDesc.CPUAccessFlags		= 0;
 	vBufferDesc.MiscFlags			= 0;
@@ -312,7 +315,7 @@ void ASModel::ReleaseBuffers()
 void ASModel::RenderBuffers(ID3D11DeviceContext* deviceContext)
 {
 	// Set the stride and offset in memory of the vertex buffer
-	unsigned int stride = sizeof(VertexType);
+	unsigned int stride = sizeof(ASVertex);
 	unsigned int offset = 0;
 
 	// Flag the vertex and index buffers as active in the assembler, allowing rendering to commence

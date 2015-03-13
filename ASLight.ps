@@ -1,0 +1,71 @@
+
+/*
+******************************************************************
+* ASLight.ps
+******************************************************************
+* Pixel shader to map each pixel to the polygons that are to
+* be rendered to the screen.  
+*
+* The pixel shader recieves its input from the output of the
+* vertex shader
+******************************************************************
+*/
+
+Texture2D    shaderTexture;
+SamplerState sampleType;
+
+// This buffer described lighting on a pixel 
+// @member float4 - The difuse lighting color 
+// @member float3 - The direction the light is hitting the pixel from
+// @member float  - 1 byte of padding to make the structure 8byte wide 
+//                  this is more about being efficient with memory allocation
+cbuffer LightBuffer 
+{
+	float4 diffuseColor;
+	float3 lightDirection;
+	float  padding;			
+};
+
+// TYPE DEFS
+struct PixelInputType
+{
+	float4 position : SV_POSITION;
+	float4 texCoord : TEXCOORD0;
+	float3 normal   : NORMAL;
+};
+
+/*
+******************************************************************
+* PIXEL SHADER
+******************************************************************
+* @return float4 - The final color of the pixel at this location
+*/
+
+float4 LightPixelShader(PixelInputType inputPixel) : SV_TARGET
+{
+	float4 texColor;		// the color sampled from the texture
+	float3 lightDir;		// the direction the light is hitting the surface
+	float  lightIntensity;	// the brightness of the light 0.0f to 1.0f
+	float4 color;			// the diffuse color
+
+	// Sample the pixels color from the texture using the sampler defined above
+	texColor = shaderTexture.Sample(sampleType, inputPixel.texCoord);
+
+	/*
+	* Lighting equations:
+	*/
+
+	// Invert the light direction for the calculations, and then calculate the intensity of light
+	// which is being emitted to the current pixel.  Intensity is the dot product of both the normal vector and 
+	// the light direction vector
+	lightDir = -lightDirection;
+	lightIntensity = saturate(dot(inputPixel.normal, lightDir));
+
+	// Set the diffuse color for the pixel based on the diffuse color mul by intensity, then multiply
+	// the texture color by the diffuse color to get the pixels final color.
+	color = saturate(diffuseColor * lightIntensity);
+	color = color * texColor;
+
+	return color;
+}
+

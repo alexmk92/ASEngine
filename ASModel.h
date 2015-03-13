@@ -30,11 +30,12 @@
 class ASModel
 {
 private:
-	// Struct mapped to the struct found in ASTexture.vs
-	struct VertexType
+	// Struct mapped to the struct found in ASLight.vs
+	struct ASVertex
 	{
 		D3DXVECTOR3 position;
 		D3DXVECTOR2 texture;
+		D3DXVECTOR3 normal;
 	};
 
 public:

@@ -21,7 +21,8 @@
 
 ASGraphics::ASGraphics() 
 {
-	m_TextureShader = 0;
+	m_lightShader   = 0;
+	m_light         = 0;
 	m_Camera	    = 0;
 	m_Model		    = 0;
 	m_D3D		    = 0;
@@ -98,16 +99,24 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	}
 
 	// Initialise a new color shader
-	m_TextureShader = new ASTextureShader;
-	if(!m_TextureShader)
+	m_lightShader = new ASLightShader;
+	if(!m_lightShader)
 		return false;
 
-	success = m_TextureShader->Init(m_D3D->GetDevice(), hwnd);
+	success = m_lightShader->Init(m_D3D->GetDevice(), hwnd);
 	if(!success)
 	{
 		MessageBox(hwnd, L"Error when initialising the ASTexture object; check the Pixel and Vertex Shader", L"Error", MB_OK);
 		return false;
 	}
+
+	// Initialise a new ASLight object to illuminate the world!
+	m_light = new ASLight;
+	if(!m_light)
+		return false;
+
+	m_light->SetDirection(0.0f, 0.0f, 1.0f);
+	m_light->SetDiffuse(0.8f, 0.0f, 0.8f, 1.0f); // Purple color light 
 
 	return true;
 }
@@ -128,9 +137,16 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 
 bool ASGraphics::UpdateFrame()
 {
+	static float rotation = 0.0f;
+
+	// Update the rotation variable on each frame (used a static var so it doesn't re-init to 0 on each call)
+	rotation += (float)D3DX_PI * 0.01f;
+	if(rotation > 360.0f)
+		rotation -= 360.0f; // reset to 0
+
 	// Call the render method and catch its return value into "success"
 	// to determine if the app should terminate or not
-	bool success = RenderScene();
+	bool success = RenderScene(rotation);
 	if(!success)
 		return false;
 	else 
@@ -142,12 +158,14 @@ bool ASGraphics::UpdateFrame()
 * Method: RenderScene()
 *******************************************************************
 * Renders the scene, using the local ASDirect3D delegate object
+* 
+* @param rotation - tells us what direction the camera is pointing in
 *
 * @return bool - True if the scene rendered successfully, else false
 *******************************************************************
 */
 
-bool ASGraphics::RenderScene()
+bool ASGraphics::RenderScene(float rotation)
 {
 	bool success = false;
 
@@ -164,11 +182,15 @@ bool ASGraphics::RenderScene()
 	m_D3D->GetWorldMatrix(world);
 	m_D3D->GetProjectionMatrix(projection);
 
+	// Rotate the world matrix by the rotation matrix 
+	D3DXMatrixRotationY(&world, rotation);
+
 	// Send the model to the Graphics pipeline to commence drawing
 	m_Model->Render(m_D3D->GetDeviceContext());
 
-	// Render the model using the shader
-	success = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection, m_Model->GetTexture());
+	// Render the model using the shader, using the light object to apply lighting to the scene
+	success = m_lightShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection, m_Model->GetTexture(),
+									m_light->GetLightDirection(), m_light->GetDiffuseColor());
 	if(!success)
 		return false;
 
@@ -191,12 +213,18 @@ bool ASGraphics::RenderScene()
 
 void ASGraphics::Release()
 {
-	// Release the Texture Shader
-	if(m_TextureShader)
+	// Release the Light Shader
+	if(m_lightShader)
 	{
-		m_TextureShader->Release();
-		delete m_TextureShader;
-		m_TextureShader = 0;
+		m_lightShader->Release();
+		delete m_lightShader;
+		m_lightShader = 0;
+	}
+	// Destroy the Light Object
+	if(m_lightShader)
+	{
+		delete m_light;
+		m_light = 0;
 	}
 	// Release the Model Object
 	if(m_Model)
