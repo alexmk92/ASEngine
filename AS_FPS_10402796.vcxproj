@@ -77,32 +77,46 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ASCamera.cpp" />
+    <ClCompile Include="ASCPUMonitor.cpp" />
     <ClCompile Include="ASDirect3D.cpp" />
     <ClCompile Include="ASEngine.cpp" />
+    <ClCompile Include="ASFont.cpp" />
+    <ClCompile Include="ASFontShader.cpp" />
+    <ClCompile Include="ASFPSCounter.cpp" />
+    <ClCompile Include="ASFrameTimer.cpp" />
     <ClCompile Include="ASGraphics.cpp" />
     <ClCompile Include="ASInput.cpp" />
     <ClCompile Include="ASLight.cpp" />
     <ClCompile Include="ASLightShader.cpp" />
     <ClCompile Include="ASModel.cpp" />
     <ClCompile Include="ASSound.cpp" />
+    <ClCompile Include="ASText.cpp" />
     <ClCompile Include="ASTexture.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ASCamera.h" />
+    <ClInclude Include="ASCPUMonitor.h" />
     <ClInclude Include="ASDirect3D.h" />
     <ClInclude Include="ASEngine.h" />
+    <ClInclude Include="ASFont.h" />
+    <ClInclude Include="ASFontShader.h" />
+    <ClInclude Include="ASFPSCounter.h" />
+    <ClInclude Include="ASFrameTimer.h" />
     <ClInclude Include="ASGraphics.h" />
     <ClInclude Include="ASInput.h" />
     <ClInclude Include="ASLight.h" />
     <ClInclude Include="ASLightShader.h" />
     <ClInclude Include="ASModel.h" />
     <ClInclude Include="ASSound.h" />
+    <ClInclude Include="ASText.h" />
     <ClInclude Include="ASTexture.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ASFont.ps" />
     <None Include="ASLight.ps" />
     <None Include="ASLight.vs" />
+    <None Include="ASFont.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

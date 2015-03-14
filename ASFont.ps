@@ -1,0 +1,56 @@
+
+/*
+******************************************************************
+* ASLight.ps
+******************************************************************
+* Pixel shader to map each pixel to the polygons that are to
+* be rendered to the screen.  
+*
+* The pixel shader recieves its input from the output of the
+* vertex shader
+******************************************************************
+*/
+
+Texture2D    shaderTexture;
+SamplerState sampleType;
+
+cbuffer PixelBuffer 
+{
+	float4 pixelColor;
+};
+
+// TYPE DEFS
+struct PixelInputType
+{
+	float4 position : SV_POSITION;	// The position of the pixel rel to the world
+	float2 texCoord : TEXCOORD0;	// Texture coordinate mapping relative to the mesh
+};
+
+/*
+******************************************************************
+* PIXEL SHADER
+******************************************************************
+* @return float4 - The final color of the pixel at this location
+*/
+
+float4 FontPixelShader(PixelInputType inputPixel) : SV_TARGET
+{
+	float4 color;		// the diffuse color
+
+	// Sample the pixels color from the texture using the sampler defined above
+	color = shaderTexture.Sample(sampleType, inputPixel.texCoord);
+
+	// If the color is black on the texture then treat this pixel as transparent.
+	if(color.r == 0.0f)
+	{
+		color.a = 0.0f;
+	}
+	else 
+	{
+		color.a = 1.0f;
+		color = color * pixelColor;
+	}
+
+	return color;
+}
+

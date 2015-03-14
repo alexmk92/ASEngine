@@ -30,6 +30,9 @@ ASDirect3D::ASDirect3D()
 	m_depthStencilState  = 0;
 	m_depthStencilView   = 0;
 	m_rasterState		 = 0;
+	m_alphaDisableBlendState = 0;
+	m_alphaEnableBlendState = 0;
+	m_depthStencilDisabledState = 0;
 }
 
 /*
@@ -97,6 +100,8 @@ bool ASDirect3D::Init(int width, int height, float depth, float nearPlane, bool 
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 	D3D11_RASTERIZER_DESC		  rasterDesc;
 	D3D11_VIEWPORT				  viewport;
+	D3D11_BLEND_DESC			  blendStateDesc;
+	D3D11_DEPTH_STENCIL_DESC      depthStencilDisabledDesc;
 
 	// Other configuration variables
 	int   error;
@@ -442,6 +447,64 @@ bool ASDirect3D::Init(int width, int height, float depth, float nearPlane, bool 
 
 	D3DXMatrixOrthoLH(&m_interfaceMatrix, (float)width, (float)height, nearPlane, depth);
 
+	/*
+	* DEPTH STENCIL STATE
+	*/
+
+	// Clear the second depth stencil state before setting the parameters.
+	ZeroMemory(&depthStencilDisabledDesc, sizeof(depthStencilDisabledDesc));
+
+	// Now create a second depth stencil state which turns off the Z buffer for 2D rendering.  The only difference is 
+	// that DepthEnable is set to false, all other parameters are the same as the other depth stencil state.
+	depthStencilDisabledDesc.DepthEnable = false;
+	depthStencilDisabledDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilDisabledDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	depthStencilDisabledDesc.StencilEnable = true;
+	depthStencilDisabledDesc.StencilReadMask = 0xFF;
+	depthStencilDisabledDesc.StencilWriteMask = 0xFF;
+	depthStencilDisabledDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDisabledDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	depthStencilDisabledDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDisabledDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	depthStencilDisabledDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDisabledDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	depthStencilDisabledDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDisabledDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	// Create the state using the device.
+	hr = m_device->CreateDepthStencilState(&depthStencilDisabledDesc, &m_depthStencilDisabledState);
+	if(FAILED(hr))
+		return false;
+
+	/*
+	* BLEND STATE 
+	*/
+
+	ZeroMemory(&blendStateDesc, sizeof(D3D11_BLEND_DESC));
+
+	// Enable blending by default
+	blendStateDesc.RenderTarget[0].BlendEnable = TRUE;
+	blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendStateDesc.RenderTarget[0].RenderTargetWriteMask = 0x0f;
+
+	// Create the blend state using the description.
+	hr = m_device->CreateBlendState(&blendStateDesc, &m_alphaEnableBlendState);
+	if(FAILED(hr))
+		return false;
+
+	// Modify the description to create an alpha disabled blend state description.
+	blendStateDesc.RenderTarget[0].BlendEnable = FALSE;
+
+	// Create the blend state using the description.
+	hr = m_device->CreateBlendState(&blendStateDesc, &m_alphaDisableBlendState);
+	if(FAILED(hr))
+		return false;
+	
 	// Init was successful, return true
 	return true;
 }
@@ -594,6 +657,77 @@ void ASDirect3D::GetVideoCardInfo(char* name, int& memory)
 
 /*
 *******************************************************************
+* Method: Enable alpha blending
+*******************************************************************
+*/
+
+void ASDirect3D::TurnOnAlphaBlending()
+{
+	float blendFactor[4];
+	
+
+	// Setup the blend factor.
+	blendFactor[0] = 0.0f;
+	blendFactor[1] = 0.0f;
+	blendFactor[2] = 0.0f;
+	blendFactor[3] = 0.0f;
+	
+	// Turn on the alpha blending.
+	m_deviceContext->OMSetBlendState(m_alphaEnableBlendState, blendFactor, 0xffffffff);
+
+	return;
+}
+
+/*
+*******************************************************************
+* Method: Disable alpha blending
+*******************************************************************
+*/
+
+void ASDirect3D::TurnOffAlphaBlending()
+{
+	float blendFactor[4];
+	
+
+	// Setup the blend factor.
+	blendFactor[0] = 0.0f;
+	blendFactor[1] = 0.0f;
+	blendFactor[2] = 0.0f;
+	blendFactor[3] = 0.0f;
+	
+	// Turn off the alpha blending.
+	m_deviceContext->OMSetBlendState(m_alphaDisableBlendState, blendFactor, 0xffffffff);
+
+	return;
+}
+
+/*
+*******************************************************************
+* Method: Enable Z Buffer
+*******************************************************************
+*/
+
+void ASDirect3D::TurnOnZBuffer()
+{
+	m_deviceContext->OMSetDepthStencilState(m_depthStencilState, 1);
+	return;
+}
+
+/*
+*******************************************************************
+* Method: Disable Z Buffer
+*******************************************************************
+*/
+
+void ASDirect3D::TurnOffZBuffer()
+{
+	m_deviceContext->OMSetDepthStencilState(m_depthStencilDisabledState, 1);
+	return;
+}
+
+
+/*
+*******************************************************************
 * Method: Release 
 *******************************************************************
 * Releases and cleans up all pointers used in this code, this
@@ -654,6 +788,24 @@ void ASDirect3D::Release()
 	{
 		m_swapChain->Release();
 		m_swapChain = 0;
+	}
+	// Alpha states
+	if(m_alphaEnableBlendState)
+	{
+		m_alphaEnableBlendState->Release();
+		m_alphaEnableBlendState = 0;
+	}
+	// Alpha states
+	if(m_alphaDisableBlendState)
+	{
+		m_alphaDisableBlendState->Release();
+		m_alphaDisableBlendState = 0;
+	}
+	// Depth stencil state
+	if(m_depthStencilDisabledState)
+	{
+		m_depthStencilDisabledState->Release();
+		m_depthStencilDisabledState = 0;
 	}
 
 	return;

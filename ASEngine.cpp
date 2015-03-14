@@ -203,6 +203,11 @@ bool ASEngine::DispatchASEvent()
 	// the mouses current X and Y coords
 	int mouseX, mouseY;
 
+	// On each frame update system statistics
+	m_cpuMonitor->UpdateCPUUsage();
+	m_fpsCounter->IncrementFrameCount();
+	m_frameTimer->GetFrame();
+
 	// Process the input frame
 	bool success = m_input->ProcessFrame();
 	if(!success)
@@ -212,7 +217,7 @@ bool ASEngine::DispatchASEvent()
 	m_input->GetMouseLocation(mouseX, mouseY);
 
 	// Dispatch the event to the graphics object
-	success = m_graphics->UpdateFrame(mouseX, mouseY);
+	success = m_graphics->UpdateFrame(mouseX, mouseY, m_frameTimer->GetTime(), m_fpsCounter->GetFps(), m_cpuMonitor->GetCPUUsage());
 	if(!success)
 		return false;
 

@@ -68,6 +68,11 @@ public:
 	ID3D11Device*		 GetDevice();
 	ID3D11DeviceContext* GetDeviceContext();
 
+	void TurnOnZBuffer();
+	void TurnOffZBuffer();
+	void TurnOnAlphaBlending();
+	void TurnOffAlphaBlending();
+
 private:
 	// Member variables
 	bool					 m_vsync_enabled;
@@ -86,6 +91,11 @@ private:
 	D3DXMATRIX				 m_projectionMatrix;
 	D3DXMATRIX				 m_worldMatrix;
 	D3DXMATRIX				 m_interfaceMatrix;
+
+	// For 2D rendering
+	ID3D11DepthStencilState* m_depthStencilDisabledState;
+	ID3D11BlendState*		 m_alphaEnableBlendState;
+	ID3D11BlendState*		 m_alphaDisableBlendState;
 };
 
 #endif

@@ -27,6 +27,7 @@
 #include "ASModel.h"
 #include "ASLightShader.h"
 #include "ASLight.h"
+#include "ASText.h"
 
 /*
 *******************************************************************
@@ -55,7 +56,7 @@ public:
 
 	// Public methods
 	bool Init(int, int, HWND);
-	bool UpdateFrame(int, int);
+	bool UpdateFrame(int, int, float, int, int);
 	bool RenderScene(float);
 	void Release();
 
@@ -66,7 +67,7 @@ private:
 	ASDirect3D*      m_D3D;
 	ASCamera*        m_Camera;
 	ASModel*         m_Model;
-	 
+	ASText*          m_Text;
 };
 
 #endif

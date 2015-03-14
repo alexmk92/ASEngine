@@ -26,6 +26,7 @@ ASGraphics::ASGraphics()
 	m_Camera	    = 0;
 	m_Model		    = 0;
 	m_D3D		    = 0;
+	m_Text			= 0;
 }
 
 /*
@@ -63,6 +64,7 @@ ASGraphics::~ASGraphics()
 bool ASGraphics::Init(int w, int h, HWND hwnd)
 {
 	bool success = false;
+	D3DXMATRIX viewMatrix;
 
 	// Create a new ASDirect3D object
 	m_D3D = new ASDirect3D;
@@ -84,6 +86,7 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 
 	m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
+	m_Camera->GetViewMatrix(viewMatrix);
 
 	// Initialise a new model object
 	m_Model = new ASModel;
@@ -121,6 +124,22 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	m_light->SetSpecular(1.0f, 1.0f, 1.0f, 1.0f);
 	m_light->SetSpecularIntensity(32.0f);
 
+	/*
+	// Create the text object.
+	m_Text = new ASText;
+	if(!m_Text)
+		return false;
+
+	// Initialize the text object.
+	success = m_Text->Init(m_D3D->GetDevice(), m_D3D->GetDeviceContext(), hwnd, w, h, viewMatrix);
+	if(!success)
+	{
+		MessageBox(hwnd, L"Could not initialize the text object.", L"Error", MB_OK);
+		return false;
+	}
+	*/
+
+
 	return true;
 }
 
@@ -134,13 +153,20 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 * terminate the game loop and close the window, safely disposing
 * of all objects.
 *
+* @param int
+* @param int
+* @param float
+* @param int
+* @param int 
+*
 * @return bool - True if frame was rendered successfully, else false
 *******************************************************************
 */
 
-bool ASGraphics::UpdateFrame(int mouseX, int mouseY)
+bool ASGraphics::UpdateFrame(int mouseX, int mouseY, float timeElapsed, int numFrames, int cpuUsage)
 {
 	static float rotation = 0.0f;
+	bool success = false;
 
 	// Update the rotation variable on each frame (used a static var so it doesn't re-init to 0 on each call)
 	rotation += (float)D3DX_PI * 0.005f;
@@ -150,13 +176,17 @@ bool ASGraphics::UpdateFrame(int mouseX, int mouseY)
 	// Update the position of the camera
 	m_Camera->SetPosition(mouseX*-0.025, mouseY*-0.025, -20.0f);
 
+	// Render the stats to the screen
+
+
+
 	// Call the render method and catch its return value into "success"
 	// to determine if the app should terminate or not
-	bool success = RenderScene(rotation);
+	success = RenderScene(rotation);
 	if(!success)
 		return false;
-	else 
-		return true;
+	
+	return true;
 }
 
 /*
@@ -178,6 +208,7 @@ bool ASGraphics::RenderScene(float rotation)
 	D3DXMATRIX world;
 	D3DXMATRIX view;
 	D3DXMATRIX projection;
+	D3DXMATRIX ortho;
 
 	// Clear the buffers and generate the view matrix for the cameras position
 	m_D3D->PrepareBuffers(0.0f, 0.0f, 0.0f, 1.0f);
@@ -187,6 +218,7 @@ bool ASGraphics::RenderScene(float rotation)
 	m_Camera->GetViewMatrix(view);
 	m_D3D->GetWorldMatrix(world);
 	m_D3D->GetProjectionMatrix(projection);
+	m_D3D->GetInterfaceMatrix(ortho);
 
 	// Rotate the world matrix by the rotation matrix 
 	D3DXMatrixRotationY(&world, rotation);
@@ -198,8 +230,25 @@ bool ASGraphics::RenderScene(float rotation)
 	success = m_lightShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection, m_Model->GetTexture(),
 									m_light->GetLightDirection(), m_light->GetDiffuseColor(), m_light->GetAmbientColor(), m_Camera->GetPosition(), 
 									m_light->GetSpecularColor(), m_light->GetSpecularIntensity());
+
+
 	if(!success)
 		return false;
+
+	/*
+	// Turn the Z buffer back on now that all 2D rendering has completed.
+	m_D3D->TurnOffZBuffer();
+	// Turn on the alpha blending before rendering the text.
+	m_D3D->TurnOnAlphaBlending();
+	// Render the text strings.
+	success = m_Text->Render(m_D3D->GetDeviceContext(), world, ortho);
+	if(!success)
+		return false;
+	// Turn off alpha blending after rendering the text.
+	m_D3D->TurnOffAlphaBlending();
+	// Turn the Z buffer back on now that all 2D rendering has completed.
+	m_D3D->TurnOnZBuffer();
+	*/
 
 	// Present the rendered scene to the screen
 	m_D3D->RenderScene();
@@ -252,6 +301,13 @@ void ASGraphics::Release()
 		m_D3D->Release();
 		delete m_D3D;
 		m_D3D = 0;
+	}
+	// Release the text object
+	if(m_Text)
+	{
+		m_Text->Release();
+		delete m_Text;
+		m_Text = 0;
 	}
 
 	return;

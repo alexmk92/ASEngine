@@ -51,6 +51,24 @@
     <ClCompile Include="ASSound.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ASFPSCounter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASCPUMonitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASFrameTimer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASFontShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASFont.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASText.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ASEngine.h">
@@ -83,12 +101,36 @@
     <ClInclude Include="ASSound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ASFPSCounter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASCPUMonitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASFrameTimer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASFontShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASFont.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASText.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ASLight.vs">
       <Filter>Shaders</Filter>
     </None>
     <None Include="ASLight.ps">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASFont.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASFont.ps">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
