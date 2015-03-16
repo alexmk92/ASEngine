@@ -69,6 +69,15 @@
     <ClCompile Include="ASText.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ASFrustrum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASEnemies.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASPlayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ASEngine.h">
@@ -110,13 +119,28 @@
     <ClInclude Include="ASFrameTimer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ASFontShader.h">
+    <ClInclude Include="ASFrustrum.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASEnemies.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASEntity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASPlayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ASFont.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ASFontShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="ASText.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASGun.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -132,6 +156,9 @@
     </None>
     <None Include="ASFont.ps">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASPlayer.m">
+      <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
 </Project>

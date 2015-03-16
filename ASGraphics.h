@@ -28,6 +28,8 @@
 #include "ASLightShader.h"
 #include "ASLight.h"
 #include "ASText.h"
+#include "ASFrustrum.h"
+#include "ASEnemies.h"
 
 /*
 *******************************************************************
@@ -56,8 +58,8 @@ public:
 
 	// Public methods
 	bool Init(int, int, HWND);
-	bool UpdateFrame(int, int, float, int, int);
-	bool RenderScene(float);
+	bool UpdateFrame(float, float, float, float);
+	bool RenderScene();
 	void Release();
 
 private:
@@ -68,6 +70,8 @@ private:
 	ASCamera*        m_Camera;
 	ASModel*         m_Model;
 	ASText*          m_Text;
+	ASFrustrum*      m_Frustum;
+	ASEnemies*       m_EnemyList;
 };
 
 #endif

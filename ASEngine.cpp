@@ -25,6 +25,7 @@ ASEngine::ASEngine()
 	m_cpuMonitor  = 0;
 	m_frameTimer  = 0;
 	m_fpsCounter  = 0;
+	m_player      = 0;
 }
 
 /*
@@ -110,7 +111,12 @@ bool ASEngine::Init()
 		return false;
 	m_cpuMonitor->Init();
 
-	// High Precision Timer
+	/*
+	* End of performance modules
+	*/
+
+	// High Precision Timer - could argue that this is a performance module, however it will be used to
+	// synchronise frames
 	m_frameTimer = new ASFrameTimer;
 	if(!m_frameTimer)
 		return false;
@@ -121,9 +127,10 @@ bool ASEngine::Init()
 		return false;
 	}
 
-	/*
-	* End of performance modules
-	*/
+	// Create the player object to traverse the world
+	m_player = new ASPlayer;
+	if(!m_player)
+		return false;
 
 	// Catch the value of success, and determine if the window was initalised 
 	// without any errors
@@ -200,26 +207,51 @@ void ASEngine::Run()
 
 bool ASEngine::DispatchASEvent() 
 {
-	// the mouses current X and Y coords
-	int mouseX, mouseY;
+	// Which way to rotate the user
+	float rotY = 0.f;
+	float rotX = 0.f;
+	float posX = 0.f;
+	float posY = 0.f;
+
+	// Flag to determine if an event should be fired
+	bool triggerEvent = false;
 
 	// On each frame update system statistics
 	m_cpuMonitor->UpdateCPUUsage();
 	m_fpsCounter->IncrementFrameCount();
 	m_frameTimer->GetFrame();
 
-	// Process the input frame
+	// Update the input controller with what is being pressed for this current frame
 	bool success = m_input->ProcessFrame();
 	if(!success)
 		return false;
 
-	// Set the x and y coordinates of the mouse
-	m_input->GetMouseLocation(mouseX, mouseY);
+	// Update the players camera view using the frame time
+	m_player->SetFrameTime(m_frameTimer->GetTime());
+	 
+	// Check what inputs were pressed, then fire according player actions
+	triggerEvent = m_input->IsLeftArrowDown();
+	m_player->TurnLeft(triggerEvent);
 
-	// Dispatch the event to the graphics object
-	success = m_graphics->UpdateFrame(mouseX, mouseY, m_frameTimer->GetTime(), m_fpsCounter->GetFps(), m_cpuMonitor->GetCPUUsage());
+	triggerEvent = m_input->IsRightArrowDown();
+	m_player->TurnRight(triggerEvent);
+
+	triggerEvent = m_input->IsDownArrowDown();
+	m_player->MoveBackward(triggerEvent);
+
+	triggerEvent = m_input->IsUpArrowDown();
+	m_player->MoveForward(triggerEvent);
+
+	// Update the camera based on the players position
+	m_player->GetRotationY(rotY);
+	m_player->GetRotationX(rotX);
+	m_player->GetPosX(posX);
+	m_player->GetPosY(posY);
+
+	success = m_graphics->UpdateFrame(rotX, rotY, posX, posY);
 	if(!success)
 		return false;
+
 
 	return true;
 }
@@ -454,6 +486,13 @@ void ASEngine::Release()
 	{
 		delete m_fpsCounter;
 		m_fpsCounter = 0;
+	}
+	// release the player object
+	if(m_player)
+	{
+		m_player->Release();
+		delete m_player;
+		m_player = 0;
 	}
 
 	// Close the Window

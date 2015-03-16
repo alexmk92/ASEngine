@@ -27,6 +27,8 @@ ASGraphics::ASGraphics()
 	m_Model		    = 0;
 	m_D3D		    = 0;
 	m_Text			= 0;
+	m_Frustum       = 0;
+	m_EnemyList     = 0;
 }
 
 /*
@@ -86,6 +88,7 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 
 	m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
+	m_Camera->RenderCameraView();
 	m_Camera->GetViewMatrix(viewMatrix);
 
 	// Initialise a new model object
@@ -124,6 +127,23 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	m_light->SetSpecular(1.0f, 1.0f, 1.0f, 1.0f);
 	m_light->SetSpecularIntensity(32.0f);
 
+	// Build the enemies into the world
+	m_EnemyList = new ASEnemies;
+	if(!m_EnemyList)
+		return false;
+
+	// Initialise the model list
+	success = m_EnemyList->Init(30);
+	if(!success) {
+		MessageBox(hwnd, L"Could not initialise the enemy list.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Create frustrum
+	m_Frustum = new ASFrustrum;
+	if(!m_Frustum)
+		return false;
+
 	/*
 	// Create the text object.
 	m_Text = new ASText;
@@ -138,7 +158,6 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 	}
 	*/
-
 
 	return true;
 }
@@ -163,29 +182,17 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 *******************************************************************
 */
 
-bool ASGraphics::UpdateFrame(int mouseX, int mouseY, float timeElapsed, int numFrames, int cpuUsage)
+bool ASGraphics::UpdateFrame(float rotX, float rotY, float posX, float posY)
 {
-	static float rotation = 0.0f;
-	bool success = false;
+	// Set the position of the camera.
+	m_Camera->SetPosition(rotY, rotX, -10.0f);
 
-	// Update the rotation variable on each frame (used a static var so it doesn't re-init to 0 on each call)
-	rotation += (float)D3DX_PI * 0.005f;
-	if(rotation > 360.0f)
-		rotation -= 360.0f; // reset to 0
+	// Set the rotation of the camera.
+	m_Camera->SetRotation(rotX, rotY, 0.0f);
 
-	// Update the position of the camera
-	m_Camera->SetPosition(mouseX*-0.025, mouseY*-0.025, -20.0f);
+	// Render the new scene
+	RenderScene();
 
-	// Render the stats to the screen
-
-
-
-	// Call the render method and catch its return value into "success"
-	// to determine if the app should terminate or not
-	success = RenderScene(rotation);
-	if(!success)
-		return false;
-	
 	return true;
 }
 
@@ -201,10 +208,22 @@ bool ASGraphics::UpdateFrame(int mouseX, int mouseY, float timeElapsed, int numF
 *******************************************************************
 */
 
-bool ASGraphics::RenderScene(float rotation)
+bool ASGraphics::RenderScene()
 {
-	bool success = false;
+	bool success	 = false;
+	bool renderModel = false;
 
+	// Used for frustum culling
+	int numEnemies = 0;
+	int renderCount = 0;
+
+	float posX = 0;
+	float posY = 0;
+	float posZ = 0;
+	float radius = 0;
+	D3DXVECTOR4 color;
+
+	// WVP Matrices
 	D3DXMATRIX world;
 	D3DXMATRIX view;
 	D3DXMATRIX projection;
@@ -220,20 +239,50 @@ bool ASGraphics::RenderScene(float rotation)
 	m_D3D->GetProjectionMatrix(projection);
 	m_D3D->GetInterfaceMatrix(ortho);
 
-	// Rotate the world matrix by the rotation matrix 
-	D3DXMatrixRotationY(&world, rotation);
+	// Build the enemies into the world
+	// Construct the frustum.
+	m_Frustum->ConstructFrustrum(SCREEN_DEPTH, projection, view);
 
-	// Send the model to the Graphics pipeline to commence drawing
-	m_Model->Render(m_D3D->GetDeviceContext());
+	// Get the number of models that will be rendered.
+	numEnemies = m_EnemyList->GetEnemyCount();
 
-	// Render the model using the shader, using the light object to apply lighting to the scene
-	success = m_lightShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection, m_Model->GetTexture(),
-									m_light->GetLightDirection(), m_light->GetDiffuseColor(), m_light->GetAmbientColor(), m_Camera->GetPosition(), 
-									m_light->GetSpecularColor(), m_light->GetSpecularIntensity());
+	// Initialize the count of models that have been rendered.
+	renderCount = 0;
 
+	// Go through all the models and render them only if they can be seen by the camera view.
+	for(unsigned int i=0; i<numEnemies; i++)
+	{
+		// Get the position and color of the sphere model at this index.
+		m_EnemyList->GetData(i, posX, posY, posZ, color);
 
-	if(!success)
-		return false;
+		// Set the radius of the sphere to 1.0 since this is already known.
+		radius = 1.0f;
+
+		// Check if the sphere model is in the view frustum.
+		renderModel = m_Frustum->CheckCube(posX, posY, posZ, radius);
+
+		// If it can be seen then render it, if not skip this model and check the next sphere.
+		if(renderModel)
+		{
+			// Move the model to the location it should be rendered at.
+			D3DXMatrixTranslation(&world, posX, posY, posZ); 
+
+			// Put the model vertex and index buffers on the graphics pipeline to prepare them for drawing.
+			m_Model->Render(m_D3D->GetDeviceContext());
+
+			// Render the model using the light shader.
+			m_lightShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection, 
+				m_Model->GetTexture(), m_light->GetLightDirection(), color, m_light->GetAmbientColor(), m_Camera->GetPosition(), 
+				m_light->GetSpecularColor(), m_light->GetSpecularIntensity());
+
+			// Reset to the original world matrix.
+			m_D3D->GetWorldMatrix(world);
+
+			// Since this model was rendered then increase the count for this frame.
+			renderCount++;
+		}
+	}
+
 
 	/*
 	// Turn the Z buffer back on now that all 2D rendering has completed.
@@ -308,6 +357,19 @@ void ASGraphics::Release()
 		m_Text->Release();
 		delete m_Text;
 		m_Text = 0;
+	}
+	// Release the frustum
+	if(m_Frustum)
+	{
+		delete m_Frustum;
+		m_Frustum = 0;
+	}
+	// Release the enemy list
+	if(m_EnemyList)
+	{
+		m_EnemyList->Release();
+		delete m_EnemyList;
+		m_EnemyList = 0;
 	}
 
 	return;

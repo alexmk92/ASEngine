@@ -20,6 +20,7 @@ ASInput::ASInput()
 	m_directInput = 0;
 	m_keyboard = 0;
 	m_mouse = 0;
+	m_mouseDown = false;
 }
 
 ASInput::ASInput(const ASInput& inp){}
@@ -185,6 +186,13 @@ bool ASInput::ReadMouse()
 			return false;
 	}
 
+	if(m_mouseState.rgbButtons[0]) {
+		m_mouseDown = true;
+		return true;
+	}
+
+	m_mouseDown = false;
+
 	// Successfully read the state
 	return true;
 }
@@ -229,6 +237,114 @@ bool ASInput::IsEscapeDown()
 	// Perform a bitwise operation on the keyboard state to check if escape key is down
 	// this is used incase multiple keys are down at one time.
 	if(m_keyboardState[DIK_ESCAPE] & 0x80)
+		return true;
+
+	return false;
+}
+
+/*
+******************************************************************
+* Method: Is Down Arrow Down
+*******************************************************************
+* Checks if the down arrow or S key is pressed
+*******************************************************************
+*/
+
+bool ASInput::IsDownArrowDown()
+{
+	// Perform a bitwise operation on the keyboard state to check if escape key is down
+	// this is used incase multiple keys are down at one time.
+	if(m_keyboardState[DIK_DOWNARROW] & 0x80 || m_keyboardState[DIK_S] & 0x80)
+		return true;
+
+	return false;
+}
+
+/*
+******************************************************************
+* Method: Is Up Arrow Down
+*******************************************************************
+* Checks if the up arrow or W key is pressed
+*******************************************************************
+*/
+
+bool ASInput::IsUpArrowDown()
+{
+	// Perform a bitwise operation on the keyboard state to check if escape key is down
+	// this is used incase multiple keys are down at one time.
+	if(m_keyboardState[DIK_UPARROW] & 0x80 || m_keyboardState[DIK_W] & 0x80)
+		return true;
+
+	return false;
+}
+
+/*
+******************************************************************
+* Method: Is Left Arrow Down
+*******************************************************************
+* Checks if the left arrow or A key is pressed
+*******************************************************************
+*/
+
+bool ASInput::IsLeftArrowDown()
+{
+	// Perform a bitwise operation on the keyboard state to check if escape key is down
+	// this is used incase multiple keys are down at one time.
+	if(m_keyboardState[DIK_LEFTARROW] & 0x80 || m_keyboardState[DIK_A] & 0x80)
+ 		return true;
+
+	return false;
+}
+
+/*
+******************************************************************
+* Method: Is Right Arrow Down
+*******************************************************************
+* Checks if the right arrow or D key is pressed
+*******************************************************************
+*/
+
+bool ASInput::IsRightArrowDown()
+{
+	// Perform a bitwise operation on the keyboard state to check if escape key is down
+	// this is used incase multiple keys are down at one time.
+	if(m_keyboardState[DIK_LEFTARROW] & 0x80 || m_keyboardState[DIK_D] & 0x80)
+		return true;
+
+	return false;
+}
+
+/*
+******************************************************************
+* Method: Left Mouse Clicked
+*******************************************************************
+* Checks if left mouse was clicked
+*******************************************************************
+*/
+
+bool ASInput::LeftMouseClicked()
+{
+	// Perform a bitwise operation on the keyboard state to check if escape key is down
+	// this is used incase multiple keys are down at one time.
+	if(m_mouseDown)
+		return true;
+
+	return false;
+}
+
+/*
+******************************************************************
+* Method: Right Mouse Clicked
+*******************************************************************
+* Checks if the right mouse was clicked
+*******************************************************************
+*/
+
+bool ASInput::RightMouseClicked()
+{
+	// Perform a bitwise operation on the keyboard state to check if escape key is down
+	// this is used incase multiple keys are down at one time.
+	if(m_mouseDown)
 		return true;
 
 	return false;

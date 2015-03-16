@@ -30,6 +30,7 @@
 * @ASFrameTimer.h - High precision timer, used to keep frames synced by frame-rate
 * @ASCPUMonitor.h - Used to query the CPU for how many resources it is currently using
 * @ASFPSCounter.h - Keeps track of how many frames are being used per second
+* @ASPlayer.h	  - Dictates what way ASCamera should be drawing frames relative to its movements
 ******************************************************************
 */
 
@@ -41,6 +42,7 @@
 #include "ASFrameTimer.h"
 #include "ASCPUMonitor.h"
 #include "ASFPSCounter.h"
+#include "ASPlayer.h"
 
 /*
 ******************************************************************
@@ -79,6 +81,7 @@ private:
 	ASInput*    m_input;
 	ASGraphics* m_graphics;
 	ASSound*    m_environment;
+	ASPlayer*   m_player;
 
 	// Performance modules
 	ASFPSCounter* m_fpsCounter;

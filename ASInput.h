@@ -35,6 +35,16 @@ public:
 	void Release();
 	bool ProcessFrame();
 	bool IsEscapeDown();
+	// Left, Right, Up, Down controls
+	bool IsLeftArrowDown();
+	bool IsRightArrowDown();
+	bool IsUpArrowDown();
+	bool IsDownArrowDown();
+	// Mouse panning
+	bool LeftMouseClicked();
+	bool RightMouseClicked();
+
+	// Returns the X, Y coords of the mouse
 	void GetMouseLocation(int&, int&);
 
 private:
@@ -52,6 +62,7 @@ private:
 	int					 m_screenHeight;
 	int					 m_mouseX;				// mouse pos rel to HWND
 	int				     m_mouseY;
+	bool				 m_mouseDown;
 };
 
 #endif

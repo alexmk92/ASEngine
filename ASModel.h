@@ -58,6 +58,20 @@ private:
 		float normY;
 		float normZ;
 	};
+	// Struct to hold data on the material associated with the model
+	struct ASMaterial
+	{
+		WCHAR	matName[MAX_PATH]; 
+		WCHAR   texName[MAX_PATH];
+		D3DXVECTOR3 ambient;
+		D3DXVECTOR3 diffuse;
+		D3DXVECTOR3 specular;
+		int specularIntensity;
+		float alpha;
+		bool hasSpecular;
+		ID3D11ShaderResourceView* texture;
+		ID3D10EffectTechnique* technique;
+	};
 
 public:
 	// Constructors and Destructors
@@ -92,6 +106,7 @@ private:
 	// Private member variables
 	ID3D11Buffer* m_vertexBuffer;
 	ID3D11Buffer* m_indexBuffer;
+	ASMaterial*   m_materials;
 	
 	int m_numVertices;
 	int m_numIndices;
