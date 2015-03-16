@@ -262,6 +262,25 @@ bool ASInput::IsDownArrowDown()
 
 /*
 ******************************************************************
+* Method: Is Space Bar Down
+*******************************************************************
+* Checks if the spacebar is down
+*******************************************************************
+*/
+
+bool ASInput::IsSpaceBarDown()
+{
+	// Perform a bitwise operation on the keyboard state to check if escape key is down
+	// this is used incase multiple keys are down at one time.
+	if(m_keyboardState[DIK_SPACE] & 0x80)
+		return true;
+
+	return false;
+}
+
+
+/*
+******************************************************************
 * Method: Is Up Arrow Down
 *******************************************************************
 * Checks if the up arrow or W key is pressed

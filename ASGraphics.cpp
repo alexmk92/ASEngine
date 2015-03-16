@@ -29,6 +29,9 @@ ASGraphics::ASGraphics()
 	m_Text			= 0;
 	m_Frustum       = 0;
 	m_EnemyList     = 0;
+	m_WorldTerrain  = 0;
+	m_colorShader   = 0;
+	m_terrainShader = 0;
 }
 
 /*
@@ -91,6 +94,9 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	m_Camera->RenderCameraView();
 	m_Camera->GetViewMatrix(viewMatrix);
 
+	// Set the spawn location of the player
+	m_Camera->SetPosition(SPAWN_X, SPAWN_Y, SPAWN_Z);
+
 	// Initialise a new model object
 	m_Model = new ASModel;
 	if(!m_Model)
@@ -104,18 +110,6 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 	}
 
-	// Initialise a new color shader
-	m_lightShader = new ASLightShader;
-	if(!m_lightShader)
-		return false;
-
-	success = m_lightShader->Init(m_D3D->GetDevice(), hwnd);
-	if(!success)
-	{
-		MessageBox(hwnd, L"Error when initialising the ASTexture object; check the Pixel and Vertex Shader", L"Error", MB_OK);
-		return false;
-	}
-
 	// Initialise a new ASLight object to illuminate the world!
 	m_light = new ASLight;
 	if(!m_light)
@@ -126,6 +120,48 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	m_light->SetDirection(0.0f, 0.0f, 1.0f);
 	m_light->SetSpecular(1.0f, 1.0f, 1.0f, 1.0f);
 	m_light->SetSpecularIntensity(32.0f);
+
+	// Initiase a new terrain shader
+	m_terrainShader = new ASTerrainShader;
+	if(!m_terrainShader)
+		return false;
+
+	success = m_terrainShader->Init(m_D3D->GetDevice(), hwnd);
+	if(!success)
+	{
+		MessageBox(hwnd, L"Error when initialisng the ASTerrainshader.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Initialise the new terrain object
+	m_WorldTerrain = new ASTerrain;
+	if(!m_WorldTerrain)
+		return false;
+
+	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapB.bmp");
+	if(!success) {
+		MessageBox(hwnd, L"Error when initialising the world terrain in ASGraphics.cpp.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Initialise a new color shader
+	m_colorShader = new ASColorShader;
+	if(!m_colorShader)
+		return false;
+
+	m_colorShader->Init(m_D3D->GetDevice(), hwnd);
+	
+	// Initialise a new light shader
+	m_lightShader = new ASLightShader;
+	if(!m_lightShader)
+		return false;
+
+	success = m_lightShader->Init(m_D3D->GetDevice(), hwnd);
+	if(!success)
+	{
+		MessageBox(hwnd, L"Error when initialising the ASTexture object; check the Pixel and Vertex Shader", L"Error", MB_OK);
+		return false;
+	}
 
 	// Build the enemies into the world
 	m_EnemyList = new ASEnemies;
@@ -172,23 +208,19 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 * terminate the game loop and close the window, safely disposing
 * of all objects.
 *
-* @param int
-* @param int
-* @param float
-* @param int
-* @param int 
+* @param ASCameraInfo* - The camera information to update the scene
 *
 * @return bool - True if frame was rendered successfully, else false
 *******************************************************************
 */
 
-bool ASGraphics::UpdateFrame(float rotX, float rotY, float posX, float posY)
+bool ASGraphics::UpdateFrame(ASCameraInfo info)
 {
 	// Set the position of the camera.
-	m_Camera->SetPosition(rotY, rotX, -10.0f);
+	m_Camera->SetPosition(info.posX, info.posY, info.posZ);
 
 	// Set the rotation of the camera.
-	m_Camera->SetRotation(rotX, rotY, 0.0f);
+	m_Camera->SetRotation(info.rotX, info.rotY, info.rotZ);
 
 	// Render the new scene
 	RenderScene();
@@ -239,65 +271,12 @@ bool ASGraphics::RenderScene()
 	m_D3D->GetProjectionMatrix(projection);
 	m_D3D->GetInterfaceMatrix(ortho);
 
-	// Build the enemies into the world
-	// Construct the frustum.
-	m_Frustum->ConstructFrustrum(SCREEN_DEPTH, projection, view);
-
-	// Get the number of models that will be rendered.
-	numEnemies = m_EnemyList->GetEnemyCount();
-
-	// Initialize the count of models that have been rendered.
-	renderCount = 0;
-
-	// Go through all the models and render them only if they can be seen by the camera view.
-	for(unsigned int i=0; i<numEnemies; i++)
-	{
-		// Get the position and color of the sphere model at this index.
-		m_EnemyList->GetData(i, posX, posY, posZ, color);
-
-		// Set the radius of the sphere to 1.0 since this is already known.
-		radius = 1.0f;
-
-		// Check if the sphere model is in the view frustum.
-		renderModel = m_Frustum->CheckCube(posX, posY, posZ, radius);
-
-		// If it can be seen then render it, if not skip this model and check the next sphere.
-		if(renderModel)
-		{
-			// Move the model to the location it should be rendered at.
-			D3DXMatrixTranslation(&world, posX, posY, posZ); 
-
-			// Put the model vertex and index buffers on the graphics pipeline to prepare them for drawing.
-			m_Model->Render(m_D3D->GetDeviceContext());
-
-			// Render the model using the light shader.
-			m_lightShader->Render(m_D3D->GetDeviceContext(), m_Model->GetIndexCount(), world, view, projection, 
-				m_Model->GetTexture(), m_light->GetLightDirection(), color, m_light->GetAmbientColor(), m_Camera->GetPosition(), 
-				m_light->GetSpecularColor(), m_light->GetSpecularIntensity());
-
-			// Reset to the original world matrix.
-			m_D3D->GetWorldMatrix(world);
-
-			// Since this model was rendered then increase the count for this frame.
-			renderCount++;
-		}
-	}
-
-
-	/*
-	// Turn the Z buffer back on now that all 2D rendering has completed.
-	m_D3D->TurnOffZBuffer();
-	// Turn on the alpha blending before rendering the text.
-	m_D3D->TurnOnAlphaBlending();
-	// Render the text strings.
-	success = m_Text->Render(m_D3D->GetDeviceContext(), world, ortho);
+	// Build the terrain
+	m_WorldTerrain->Render(m_D3D->GetDeviceContext());
+	success = m_terrainShader->Render(m_D3D->GetDeviceContext(), m_WorldTerrain->GetNumIndices(), world, view, projection,
+									  m_light->GetAmbientColor(), m_light->GetDiffuseColor(), m_light->GetLightDirection());
 	if(!success)
 		return false;
-	// Turn off alpha blending after rendering the text.
-	m_D3D->TurnOffAlphaBlending();
-	// Turn the Z buffer back on now that all 2D rendering has completed.
-	m_D3D->TurnOnZBuffer();
-	*/
 
 	// Present the rendered scene to the screen
 	m_D3D->RenderScene();
@@ -370,6 +349,27 @@ void ASGraphics::Release()
 		m_EnemyList->Release();
 		delete m_EnemyList;
 		m_EnemyList = 0;
+	}
+	// Release the terrain
+	if(m_WorldTerrain)
+	{
+		m_WorldTerrain->Release();
+		delete m_WorldTerrain;
+		m_WorldTerrain = 0;
+	}
+	// Release the color shader
+	if(m_colorShader)
+	{
+		m_colorShader->Release();
+		delete m_colorShader;
+		m_colorShader = 0;
+	}
+	// Release the terrain shader
+	if(m_terrainShader)
+	{
+		m_terrainShader->Release();
+		delete m_terrainShader;
+		m_terrainShader = 0;
 	}
 
 	return;

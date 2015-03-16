@@ -78,6 +78,18 @@
     <ClCompile Include="ASPlayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ASTerrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASTextureShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASColorShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASTerrainShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ASEngine.h">
@@ -143,6 +155,18 @@
     <ClInclude Include="ASGun.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ASTerrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASTextureShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASColorShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASTerrainShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ASLight.vs">
@@ -157,8 +181,23 @@
     <None Include="ASFont.ps">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="ASPlayer.m">
-      <Filter>Source Files</Filter>
+    <None Include="ASColor.ps">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASColor.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASTexture.ps">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASTexture.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASTerrain.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASTerrain.ps">
+      <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

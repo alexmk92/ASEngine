@@ -30,7 +30,7 @@ using namespace std;
 
 class ASLightShader
 {
-private:
+protected:
 	// Struct to hold the buffer descriptor of the WVP matrices
 	struct ASConstantBuffer
 	{
@@ -61,20 +61,20 @@ public:
 	~ASLightShader();
 
 	// Public methods
-	bool Init(ID3D11Device*, HWND);
-	void Release();
-	bool Render(ID3D11DeviceContext*, int, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
+	virtual bool Init(ID3D11Device*, HWND);
+	virtual void Release();
+	virtual bool Render(ID3D11DeviceContext*, int, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
 				ID3D11ShaderResourceView*, D3DXVECTOR3, D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3, D3DXVECTOR4, float);
 
-private:
+protected:
 	// Private methods
-	bool InitShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);
-	void ReleaseShader();
-	void RaiseShaderError(ID3D10Blob*, HWND, WCHAR*);
+	virtual bool InitShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);
+	virtual void ReleaseShader();
+	virtual void RaiseShaderError(ID3D10Blob*, HWND, WCHAR*);
 
-	bool SetShaderParameters(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
+	virtual bool SetShaderParameters(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
 							 ID3D11ShaderResourceView*, D3DXVECTOR3, D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3, D3DXVECTOR4, float);
-	void RenderShader(ID3D11DeviceContext*, int);
+	virtual void RenderShader(ID3D11DeviceContext*, int);
 
 	// Private member variables
 	ID3D11VertexShader* m_vShader;

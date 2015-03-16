@@ -22,12 +22,15 @@ ASPlayer::ASPlayer()
 	m_weight    = 180.0f;
 	m_frameTime = 0.0f;
 
-	m_rotationX = 0.0f;
-	m_rotationY = 0.0f;
+	m_rotX = 0.0f;
+	m_rotY = 0.0f;
+	m_rotZ = 0.0f;
 
 	m_jumpHeight = 0;
 	m_runSpeed   = 0;
-	m_turnSpeed  = 0;
+	m_lTurnSpeed  = 0;
+	m_rTurnSpeed  = 0;
+	m_climbSpeed = 0;
 }
 
 /*
@@ -61,12 +64,14 @@ void ASPlayer::Init()
 
 /*
 *******************************************************************
-* METHOD: SetFrameTime
+* METHOD: Set Frame Time
 *******************************************************************
-* Sets the frame speed so movements can be synchronised to what the
-* graphics card is currently producing.  This will be used to 
+* Sets the frame time so movements can be synchronised to what the
+* graphics card is currently rendering at.  This will be used to 
 * calculate how fast to rotate the camera in 3D Space (called at the 
-* beginning of each frame)
+* beginning of each frame), the time quantum that is passed in comes
+* from the high precision ASFrameTimer class and is passed in from
+* ASEngine
 */
 
 void ASPlayer::SetFrameTime(float time)
@@ -76,26 +81,76 @@ void ASPlayer::SetFrameTime(float time)
 
 /*
 *******************************************************************
-* METHOD: Get Rotation X
+* METHOD: Get Position
 *******************************************************************
-* Gets the players current rotation on the X axis (up/down)
+* Gets the players current position in the world, this is used to
+* set the position of ASCamera.
+*
+* @param float& - output parameter for X position
+* @param float& - output parameter for Y position
+* @param float& - output parameter for Z position
 */
 
-void ASPlayer::GetRotationX(float& rotX)
+void ASPlayer::GetPosition(float& posX, float& posY, float& posZ)
 {
-	rotX = m_rotationX;
+	posX = m_posX;
+	posY = m_posY;
+	posZ = m_posZ;
 }
 
 /*
 *******************************************************************
-* METHOD: Get Rotation Y
+* METHOD: Get Rotation 
 *******************************************************************
-* Gets the players current rotation on the Y axis (left/right)
+* Gets the players current rotation in the world, this is used to
+* set the rotation for of ASCamera.
+*
+* @param float& - output parameter for X position
+* @param float& - output parameter for Y position
+* @param float& - output parameter for Z position
 */
 
-void ASPlayer::GetRotationY(float& rotY)
+void ASPlayer::GetRotation(float& rotX, float& rotY, float& rotZ)
 {
-	rotY = m_rotationY;
+	rotX = m_rotX;
+	rotY = m_rotY;
+	rotZ = m_rotZ;
+}
+
+/*
+*******************************************************************
+* METHOD: Set Position
+*******************************************************************
+* Sets the players current position in the world
+*
+* @param float - input parameter for X position
+* @param float - input parameter for Y position
+* @param float - input parameter for Z position
+*/
+
+void ASPlayer::SetPosition(float posX, float posY, float posZ)
+{
+	m_posX = posX;
+	m_posY = posY;
+	m_posZ = posZ;
+}
+
+/*
+*******************************************************************
+* METHOD: Set Rotation
+*******************************************************************
+* Sets the players current position in the world
+*
+* @param float - input parameter for X position
+* @param float - input parameter for Y position
+* @param float - input parameter for Z position
+*/
+
+void ASPlayer::SetRotation(float rotX, float rotY, float rotZ)
+{
+	m_rotX = rotX;
+	m_rotY = rotY;
+	m_rotZ = rotZ;
 }
 
 /*
@@ -110,23 +165,23 @@ void ASPlayer::TurnLeft(bool turning)
 	// If the mouse is panning, increase the speed at which the rotation happens
 	if(turning)
 	{
-		m_turnSpeed += m_frameTime * 0.01f;
+		m_lTurnSpeed += m_frameTime * 0.01f;
 
-		if(m_turnSpeed > (m_frameTime * 0.15f))
-			m_turnSpeed = m_frameTime * 0.15f;
+		if(m_lTurnSpeed > (m_frameTime * 0.15f))
+			m_lTurnSpeed = m_frameTime * 0.15f;
 	}
 	// If the mouse is not panning, decelerate the move speed, improves realism
 	else 
 	{
-		m_turnSpeed -= m_frameTime * 0.005f;
-		if(m_turnSpeed < 0.0f)
-			m_turnSpeed = 0.0f;
+		m_lTurnSpeed -= m_frameTime * 0.005f;
+		if(m_lTurnSpeed < 0.0f)
+			m_lTurnSpeed = 0.0f;
 	}
 
 	// Update the players rotation
-	m_rotationY -= m_turnSpeed;
-	if(m_rotationY < 0.0f)
-		m_rotationY += 360.0f;
+	m_rotY -= m_lTurnSpeed;
+	if(m_rotY < 0.0f)
+		m_rotY += 360.0f;
 }
 
 /*
@@ -141,23 +196,23 @@ void ASPlayer::TurnRight(bool turning)
 	// If the mouse is panning, increase the speed at which the rotation happens
 	if(turning)
 	{
-		m_turnSpeed += m_frameTime * 0.01f;
+		m_rTurnSpeed += m_frameTime * 0.01f;
 
-		if(m_turnSpeed > (m_frameTime * 0.15f))
-			m_turnSpeed = m_frameTime * 0.15f;
+		if(m_rTurnSpeed > (m_frameTime * 0.15f))
+			m_rTurnSpeed = m_frameTime * 0.15f;
 	}
 	// If the mouse is not panning, decelerate the move speed, improves realism
 	else 
 	{
-		m_turnSpeed -= m_frameTime * 0.005f;
-		if(m_turnSpeed < 0.0f)
-			m_turnSpeed = 0.0f;
+		m_rTurnSpeed -= m_frameTime * 0.005f;
+		if(m_rTurnSpeed < 0.0f)
+			m_rTurnSpeed = 0.0f;
 	}
 
 	// Update the players rotation
-	m_rotationY += m_turnSpeed;
-	if(m_rotationY > 360.0f)
-		m_rotationY -= 360.0f;
+	m_rotY += m_rTurnSpeed;
+	if(m_rotY > 360.0f)
+		m_rotY -= 360.0f;
 }
 
 /*
@@ -169,15 +224,16 @@ void ASPlayer::TurnRight(bool turning)
 
 void ASPlayer::MoveForward(bool moving)
 {
-	// If the mouse is panning, increase the speed at which the rotation happens
+	// If the forward key is pressed, then gradually accelerate the player
 	if(moving)
 	{
 		m_runSpeed += m_frameTime * 0.01f;
 
-		if(m_runSpeed > (m_frameTime * 0.15f))
-			m_runSpeed = m_frameTime * 0.15f;
+		// Set the max speed for the user
+		if(m_runSpeed > (m_frameTime * MAX_SPEED_MULTIPLIER))
+			m_runSpeed = m_frameTime * MAX_SPEED_MULTIPLIER;
 	}
-	// If the mouse is not panning, decelerate the move speed, improves realism
+	// If forward key is not pressed, then decelerate the player to 0.0f
 	else 
 	{
 		m_runSpeed -= m_frameTime * 0.005f;
@@ -185,10 +241,10 @@ void ASPlayer::MoveForward(bool moving)
 			m_runSpeed = 0.0f;
 	}
 
-	// Update the players rotation
-	m_rotationX += m_turnSpeed;
-	if(m_rotationX > 360.0f)
-		m_rotationX -= 360.0f;
+	// Update the players position
+	float radians = m_rotY * 0.0174532925f;
+	m_posX += sinf(radians) * m_runSpeed;
+	m_posZ += cosf(radians) * m_runSpeed;
 }
 
 /*
@@ -200,15 +256,16 @@ void ASPlayer::MoveForward(bool moving)
 
 void ASPlayer::MoveBackward(bool moving)
 {
-	// If the mouse is panning, increase the speed at which the rotation happens
+	// If the down key is pressed, then gradually accelerate the player
 	if(moving)
 	{
 		m_runSpeed += m_frameTime * 0.01f;
 
-		if(m_runSpeed > (m_frameTime * 0.15f))
-			m_runSpeed = m_frameTime * 0.15f;
+		// Set the max speed for the user
+		if(m_runSpeed > (m_frameTime * MAX_SPEED_MULTIPLIER))
+			m_runSpeed = m_frameTime * MAX_SPEED_MULTIPLIER;
 	}
-	// If the mouse is not panning, decelerate the move speed, improves realism
+	// If down key is not pressed, then decelerate the player to 0.0f
 	else 
 	{
 		m_runSpeed -= m_frameTime * 0.005f;
@@ -216,49 +273,144 @@ void ASPlayer::MoveBackward(bool moving)
 			m_runSpeed = 0.0f;
 	}
 
-	// Update the players rotation
-	m_rotationX += m_turnSpeed;
-	if(m_rotationX > 360.0f)
-		m_rotationX -= 360.0f;
+	// Update the players position
+	float radians = m_rotY * 0.0174532925f;
+	m_posX -= sinf(radians) * m_runSpeed;
+	m_posZ -= cosf(radians) * m_runSpeed;
 }
 
 /*
 *******************************************************************
-* METHOD: Get Pos X
+* METHOD: Move Upward
 *******************************************************************
-* Gets the players X position
+* Describes how the player will climb the Y axis, this will be used
+* for scaling terrain etc
 */
 
-void ASPlayer::GetPosX(float& posX)
+void ASPlayer::MoveUpward(bool moving)
 {
-	posX = 0.f;
+	// If the down key is pressed, then gradually accelerate the player
+	if(moving)
+	{
+		m_climbSpeed += m_frameTime * 0.01f;
+
+		// Set the max speed for the user
+		if(m_climbSpeed > (m_frameTime * MAX_SPEED_MULTIPLIER))
+			m_climbSpeed = m_frameTime * MAX_SPEED_MULTIPLIER;
+	}
+	// If down key is not pressed, then decelerate the player to 0.0f
+	else 
+	{
+		m_climbSpeed -= m_frameTime * 0.05f;
+		if(m_climbSpeed < 0.0f)
+			m_climbSpeed = 0.0f;
+	}
+
+	// Update the players position
+	m_posY += m_climbSpeed;
 }
 
 /*
 *******************************************************************
-* METHOD: Get Pos Y
+* METHOD: Move Downward
 *******************************************************************
-* Gets the players Y position
+* Describes how the player will descend off the Y axis, this will
+* be used for when the player climbs down mountain terrain
 */
 
-void ASPlayer::GetPosY(float& posY)
+void ASPlayer::MoveDownward(bool moving)
 {
-	posY = 0.f;
+	// If the down key is pressed, then gradually accelerate the player
+	if(moving)
+	{
+		m_climbSpeed += m_frameTime * 0.01f;
+
+		// Set the max speed for the user
+		if(m_climbSpeed > (m_frameTime * MAX_SPEED_MULTIPLIER))
+			m_climbSpeed = m_frameTime * MAX_SPEED_MULTIPLIER;
+	}
+	// If down key is not pressed, then decelerate the player to 0.0f
+	else 
+	{
+		m_climbSpeed -= m_frameTime * 0.05f;
+		if(m_climbSpeed < 0.0f)
+			m_climbSpeed = 0.0f;
+	}
+
+	if(m_posY > 1.0f)
+		m_posY -= m_climbSpeed;
+}
+
+
+/*
+*******************************************************************
+* METHOD: Look Upward
+*******************************************************************
+* allows the camera to look upward into the sky, this is capped at
+* a 90 deg angle 
+*/
+
+void ASPlayer::LookUpward(bool moving)
+{
+	// If the down key is pressed, then gradually accelerate the player
+	if(moving)
+	{
+		m_lookSpeed += m_frameTime * 0.01f;
+
+		// Set the max speed for the user
+		if(m_lookSpeed > (m_frameTime * MAX_LOOK_MULTIPLIER))
+			m_lookSpeed = m_frameTime * MAX_LOOK_MULTIPLIER;
+	}
+	// If down key is not pressed, then decelerate the player to 0.0f
+	else 
+	{
+		m_lookSpeed -= m_frameTime * 0.05f;
+		if(m_lookSpeed < 0.0f)
+			m_lookSpeed = 0.0f;
+	}
+
+	// Update the players look axis
+	m_rotX -= m_lookSpeed;
+
+	// Cap the look axis to 90 deg
+	if(m_rotX > 90.0f)
+		m_rotX = 90.0f;
 }
 
 /*
 *******************************************************************
-* METHOD: Strafe Left
+* METHOD: Look Downward
 *******************************************************************
-* Strafes the camera left across its X axis
+* allows the camera to look downward into the ground, this is capped at
+* a 90 deg angle 
 */
 
-/*
-*******************************************************************
-* METHOD: Strafe Right
-*******************************************************************
-* Strafes the camera right across its X axis
-*/
+void ASPlayer::LookDownward(bool moving)
+{
+	// If the down key is pressed, then gradually accelerate the player
+	if(moving)
+	{
+		m_lookSpeed += m_frameTime * 0.01f;
+
+		// Set the max speed for the user
+		if(m_lookSpeed > (m_frameTime * MAX_LOOK_MULTIPLIER))
+			m_lookSpeed = m_frameTime * MAX_LOOK_MULTIPLIER;
+	}
+	// If down key is not pressed, then decelerate the player to 0.0f
+	else 
+	{
+		m_lookSpeed -= m_frameTime * 0.05f;
+		if(m_lookSpeed < 0.0f)
+			m_lookSpeed = 0.0f;
+	}
+
+	// Update the players look axis
+	m_rotX += m_lookSpeed;
+
+	// Cap the look axis to 90 deg
+	if(m_rotX < -90.0f)
+		m_rotX = -90.0f;
+}
 
 /*
 *******************************************************************

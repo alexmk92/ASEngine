@@ -64,7 +64,7 @@ bool ASSound::Init(HWND handle)
 		return false;
 
 	// Load the sound file
-	success = LoadWavFile("./sounds/sound01.wav", &m_secondaryBuffer);
+	success = LoadWavFile("./sounds/sound01.wav", &m_secondaryBuffer, &m_secondary3DBuffer);
 	if(!success)
 		return false;
 
@@ -144,7 +144,7 @@ bool ASSound::InitDirectSound(HWND handle)
 ******************************************************************
 */
 
-bool ASSound::LoadWavFile(char* filename, IDirectSoundBuffer8** buffer)
+bool ASSound::LoadWavFile(char* filename, IDirectSoundBuffer8** buffer, IDirectSound3DBuffer8**)
 {
 	int err;
 	FILE* filePtr;
@@ -314,7 +314,7 @@ bool ASSound::PlayFile()
 void ASSound::Release()
 {
 	// Release the file being played
-	ReleaseFile(&m_secondaryBuffer);
+	ReleaseFile(&m_secondaryBuffer, &m_secondary3DBuffer);
 	// Release the DirectSound API
 	ReleaseDirectSound();
 }
@@ -328,13 +328,19 @@ void ASSound::Release()
 ******************************************************************
 */
 
-void ASSound::ReleaseFile(IDirectSoundBuffer8** buffer)
+void ASSound::ReleaseFile(IDirectSoundBuffer8** buffer, IDirectSound3DBuffer8** sound3DBuffer)
 {
 	// Release the primary sound buffer ptr
 	if(*buffer)
 	{
 		(*buffer)->Release();
 		(*buffer) = 0;
+	}
+	// Release the 3D buffer pointer
+	if(*sound3DBuffer)
+	{
+		(*sound3DBuffer)->Release();
+		(*sound3DBuffer) = 0;
 	}
 }
 

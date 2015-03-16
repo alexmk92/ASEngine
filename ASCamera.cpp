@@ -124,29 +124,42 @@ D3DXVECTOR3 ASCamera::GetRotation()
 
 void ASCamera::RenderCameraView()
 {
-	D3DXMATRIX rotMatrix;	
+	D3DXMATRIX cameraRot;
 
 	// Set the "up" vector to point upward
-	D3DXVECTOR3 up = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
+	D3DXVECTOR3 up = D3DXVECTOR3(0.0f, 
+								 1.0f, 
+								 0.0f);
 
 	// Set the cameras position relative to the world
-	D3DXVECTOR3 pos = D3DXVECTOR3(m_posX, m_posY, m_posZ);
+	D3DXVECTOR3 pos = D3DXVECTOR3(m_posX, 
+								  m_posY, 
+								  m_posZ);
+
+	// Set the direction the camera is looking at
+	D3DXVECTOR3 eye = D3DXVECTOR3(0.0f,
+								  0.0f, 
+								  1.0f);
 
 	// Set rotation of the camera on its axis
 	float pitch = m_rotX * 0.0174532925f; // X Axis Rotation
 	float yaw   = m_rotY * 0.0174532925f; // Y Axis Rotation
 	float roll  = m_rotZ * 0.0174532925f; // Z Axis Rotation
 
-	// Set the direction the camera is looking at
-	D3DXVECTOR3 eye = D3DXVECTOR3(sinf(pitch) + m_posX,
-								  yaw, 
-								  cosf(roll) + m_posZ);
+	// Set the yaw pitch and roll rotations for the camera, and write it to the output
+	// matrix (cameraRot)
+	D3DXMatrixRotationYawPitchRoll(&cameraRot, yaw, pitch, roll); 
+
+	// Transform eye by the rotation matrix to get the correct view
+	D3DXVec3TransformCoord(&eye, &eye, &cameraRot);
+	D3DXVec3TransformCoord(&up, &up, &cameraRot);
+
+	// Translate the rotated camera to the viewer location
+	eye = pos + eye;
 
 	// Create the view matrix by multiplying the cameras eye, pos and up matrices together (this
 	// gives the cameras position relative to the world)
 	D3DXMatrixLookAtLH(&m_cameraView, &pos, &eye, &up);
-
-	return;
 }
 
 /*

@@ -200,7 +200,7 @@ bool ASColorShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 
 	// Describe the constant buffer to pass to the Vertex Shader - the CB is used to talk directly to the shader
 	mBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	mBufferDesc.ByteWidth = sizeof(MatrixBufferType);
+	mBufferDesc.ByteWidth = sizeof(ASMatrixBuffer);
 	mBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	mBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	mBufferDesc.MiscFlags = 0;
@@ -211,43 +211,6 @@ bool ASColorShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFile,
 		return false;
 
 	return true;
-}
-
-/*
-******************************************************************
-* METHOD: Release Shader
-******************************************************************
-* Disposes of any resources used by the shader and then sets a null
-* pointer to each of the member variables so we can't access it
-*/
-
-void ASColorShader::ReleaseShader()
-{
-	// Destroy constant buffer
-	if(m_mBuffer)
-	{
-		m_mBuffer->Release();
-		m_mBuffer = 0;
-	}
-	// Destroy the input layout
-	if(m_layout)
-	{
-		m_layout->Release();
-		m_layout = 0;
-	}
-	// Destroy the pixel shader
-	if(m_pShader)
-	{
-		m_pShader->Release();
-		m_pShader = 0;
-	}
-	// Destroy the vertex shader
-	if(m_vShader)
-	{
-		m_vShader->Release();
-		m_vShader = 0;
-	}
-	return;
 }
 
 /*
@@ -303,7 +266,7 @@ bool ASColorShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DX
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE res;
-	MatrixBufferType* shader;
+	ASMatrixBuffer* shader;
 	unsigned int bufferNum;
 
 	// Transpose matrices and prepare them for shader
@@ -317,7 +280,7 @@ bool ASColorShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DX
 		return false;
 
 	// Attain a refernece to the constant buffer data
-	shader = (MatrixBufferType*)res.pData;
+	shader = (ASMatrixBuffer*)res.pData;
 
 	// Write the matrices to the constant buffer to be processed by the shader
 	shader->world = world;
@@ -356,5 +319,42 @@ void ASColorShader::RenderShader(ID3D11DeviceContext* deviceContext, int numIndi
 	// Render the model
 	deviceContext->DrawIndexed(numIndices, 0, 0);
 
+	return;
+}
+
+/*
+******************************************************************
+* METHOD: Release Shader
+******************************************************************
+* Disposes of any resources used by the shader and then sets a null
+* pointer to each of the member variables so we can't access it
+*/
+
+void ASColorShader::ReleaseShader()
+{
+	// Destroy constant buffer
+	if(m_mBuffer)
+	{
+		m_mBuffer->Release();
+		m_mBuffer = 0;
+	}
+	// Destroy the input layout
+	if(m_layout)
+	{
+		m_layout->Release();
+		m_layout = 0;
+	}
+	// Destroy the pixel shader
+	if(m_pShader)
+	{
+		m_pShader->Release();
+		m_pShader = 0;
+	}
+	// Destroy the vertex shader
+	if(m_vShader)
+	{
+		m_vShader->Release();
+		m_vShader = 0;
+	}
 	return;
 }

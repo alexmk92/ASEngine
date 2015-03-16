@@ -32,7 +32,7 @@ class ASColorShader
 {
 private:
 	// Context buffer to be passed to the vertex shader, this matches that of what is found in ASColor.ps
-	struct MatrixBufferType
+	struct ASMatrixBuffer
 	{
 		D3DXMATRIX world;
 		D3DXMATRIX view;

@@ -77,6 +77,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ASCamera.cpp" />
+    <ClCompile Include="ASColorShader.cpp" />
     <ClCompile Include="ASCPUMonitor.cpp" />
     <ClCompile Include="ASDirect3D.cpp" />
     <ClCompile Include="ASEnemies.cpp" />
@@ -93,12 +94,16 @@
     <ClCompile Include="ASModel.cpp" />
     <ClCompile Include="ASPlayer.cpp" />
     <ClCompile Include="ASSound.cpp" />
+    <ClCompile Include="ASTerrain.cpp" />
+    <ClCompile Include="ASTerrainShader.cpp" />
     <ClCompile Include="ASText.cpp" />
     <ClCompile Include="ASTexture.cpp" />
+    <ClCompile Include="ASTextureShader.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ASCamera.h" />
+    <ClInclude Include="ASColorShader.h" />
     <ClInclude Include="ASCPUMonitor.h" />
     <ClInclude Include="ASDirect3D.h" />
     <ClInclude Include="ASEnemies.h" />
@@ -117,15 +122,23 @@
     <ClInclude Include="ASModel.h" />
     <ClInclude Include="ASPlayer.h" />
     <ClInclude Include="ASSound.h" />
+    <ClInclude Include="ASTerrain.h" />
+    <ClInclude Include="ASTerrainShader.h" />
     <ClInclude Include="ASText.h" />
     <ClInclude Include="ASTexture.h" />
+    <ClInclude Include="ASTextureShader.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ASColor.ps" />
+    <None Include="ASColor.vs" />
     <None Include="ASFont.ps" />
     <None Include="ASLight.ps" />
     <None Include="ASLight.vs" />
     <None Include="ASFont.vs" />
-    <None Include="ASPlayer.m" />
+    <None Include="ASTerrain.ps" />
+    <None Include="ASTerrain.vs" />
+    <None Include="ASTexture.ps" />
+    <None Include="ASTexture.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -40,6 +40,7 @@ public:
 	bool IsRightArrowDown();
 	bool IsUpArrowDown();
 	bool IsDownArrowDown();
+	bool IsSpaceBarDown();
 	// Mouse panning
 	bool LeftMouseClicked();
 	bool RightMouseClicked();

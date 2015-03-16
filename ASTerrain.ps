@@ -1,0 +1,73 @@
+
+/*
+******************************************************************
+* ASTerrain.ps
+******************************************************************
+* Pixel shader to map each pixel to the polygons that are to
+* be rendered to the screen.  
+*
+* The pixel shader recieves its input from the output of the
+* vertex shader
+******************************************************************
+*/
+
+SamplerState sampleType;
+
+// This buffer described lighting on a pixel 
+// @member float3 - The direction the light is hitting the pixel from
+// @member float4 - The difuse lighting color 
+// @member float4 - The intensity of ambient color in the scene (global illumination)
+// @member float  - Padding
+//
+// @note : memory allocated in 4byte chunks, failure to do so will effect the mapping
+cbuffer LightBuffer 
+{
+	float4 diffuseColor;
+	float4 ambientColor;
+	float3 lightDirection;
+	float  padding
+};
+
+// TYPE DEFS
+struct PixelInputType
+{
+	float4 position : SV_POSITION;	// The position of the pixel rel to the world
+	float3 normal   : NORMAL;		// Vertex normal to calculate lighting
+};
+
+/*
+******************************************************************
+* PIXEL SHADER
+******************************************************************
+* @return float4 - The final color of the pixel at this location
+*/
+
+float4 TerrainPixelShader(PixelInputType inputPixel) : SV_TARGET
+{
+	// local vars
+	float  lightIntensity;	// the brightness of the light 0.0f to 1.0f
+	float3 lightDir;		// the direction the light is hitting the surface
+	float4 color;			// the diffuse color
+
+	// all pixels in the scene will now recieve some ambient color, giving a more realistic effect
+	color = ambientColor;
+
+	// Invert the light direction for the calculations, and then calculate the intensity of light
+	// which is being emitted to the current pixel.  Intensity is the dot product of both the normal vector and 
+	// the light direction vector
+	lightDir = -lightDirection;
+	lightIntensity = saturate(dot(inputPixel.normal, lightDir));
+	
+	// Check that the light intensist is greater than 0.0f, if it is then add the diffuse color to the
+	// current pixel, otherwise we'll see some deformation in the output color (due to ambient being substracted from diffuse)
+	if(lightIntensity > 0.0f)
+	{
+		color += (diffuseColor * lightIntensity);
+	}
+
+	// Saturate the color
+	color = saturate(color);
+
+	return color;
+}
+

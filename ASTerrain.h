@@ -17,6 +17,7 @@
 *******************************************************************
 */
 
+#include <stdio.h>
 #include <d3d11.h>
 #include <d3dx10math.h>
 
@@ -33,9 +34,19 @@ private:
 	struct ASVertex
 	{
 		D3DXVECTOR3 pos;
-		D3DXVECTOR4 color;
+		D3DXVECTOR3 normal;
 	};
-
+	// Struct to hold information on the heightmap
+	struct ASHeightMap
+	{
+		D3DXVECTOR3 pos;
+		D3DXVECTOR3 normals;
+	};
+	// Vector to calculate lighting between angles
+	struct ASLightVector
+	{
+		D3DXVECTOR3 vn;
+	};
 public:
 	// Constructors and Destructors
 	ASTerrain();
@@ -43,7 +54,7 @@ public:
 	~ASTerrain();
 
 	// Public methods
-	bool Init(ID3D11Device*);
+	bool Init(ID3D11Device*, char*);
 	void Release();
 	void Render(ID3D11DeviceContext*);
 
@@ -56,11 +67,19 @@ private:
 	void RenderBuffers(ID3D11DeviceContext*);
 	void ReleaseBuffers();
 
+	// Height map handling code
+	bool LoadHeightMap(char*);
+	void NormaliseHeightMap();
+	bool CalculateMapNormals();
+	void ReleaseHeightMap();
+
 	// Private member variables
 	int m_width;
 	int m_height;
 	int m_numVertices;
 	int m_numIndices;
+
+	ASHeightMap*  m_heightMap;
 	ID3D11Buffer* m_vBuffer;	// Vertices for the terrain mesh
 	ID3D11Buffer* m_iBuffer;	// Indices for the terrain mesh
 };

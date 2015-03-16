@@ -85,6 +85,7 @@ bool ASEngine::Init()
 		success = m_graphics->Init(width, height, m_hwnd);
 
 	// Initalise the sound for the environment 
+	/*
 	m_environment = new ASSound;
 	if(!m_environment)
 		return false;
@@ -94,7 +95,7 @@ bool ASEngine::Init()
 		MessageBox(m_hwnd, L"Could not initialise DirectSound", L"Error", MB_OK);
 		return false;
 	}
-
+	*/
 	/*
 	* Performance modules - remove these if you don't need to debug or run benchmarks
 	*/
@@ -131,6 +132,8 @@ bool ASEngine::Init()
 	m_player = new ASPlayer;
 	if(!m_player)
 		return false;
+
+	m_player->SetPosition(SPAWN_X, SPAWN_Y, SPAWN_Z);
 
 	// Catch the value of success, and determine if the window was initalised 
 	// without any errors
@@ -207,52 +210,72 @@ void ASEngine::Run()
 
 bool ASEngine::DispatchASEvent() 
 {
-	// Which way to rotate the user
-	float rotY = 0.f;
-	float rotX = 0.f;
-	float posX = 0.f;
-	float posY = 0.f;
-
-	// Flag to determine if an event should be fired
-	bool triggerEvent = false;
+	// Update the input controller with what is being pressed for this current frame
+	bool success = m_input->ProcessFrame();
+	if(!success)
+		return false;
 
 	// On each frame update system statistics
 	m_cpuMonitor->UpdateCPUUsage();
 	m_fpsCounter->IncrementFrameCount();
 	m_frameTimer->GetFrame();
 
-	// Update the input controller with what is being pressed for this current frame
-	bool success = m_input->ProcessFrame();
+	// Recieve input state from m_Input and do some processing in the scene
+	success = ProcessInput(m_frameTimer->GetTime());
 	if(!success)
 		return false;
 
-	// Update the players camera view using the frame time
-	m_player->SetFrameTime(m_frameTimer->GetTime());
-	 
-	// Check what inputs were pressed, then fire according player actions
-	triggerEvent = m_input->IsLeftArrowDown();
-	m_player->TurnLeft(triggerEvent);
-
-	triggerEvent = m_input->IsRightArrowDown();
-	m_player->TurnRight(triggerEvent);
-
-	triggerEvent = m_input->IsDownArrowDown();
-	m_player->MoveBackward(triggerEvent);
-
-	triggerEvent = m_input->IsUpArrowDown();
-	m_player->MoveForward(triggerEvent);
-
-	// Update the camera based on the players position
-	m_player->GetRotationY(rotY);
-	m_player->GetRotationX(rotX);
-	m_player->GetPosX(posX);
-	m_player->GetPosY(posY);
-
-	success = m_graphics->UpdateFrame(rotX, rotY, posX, posY);
+	// Update the scene
+	success = m_graphics->UpdateFrame(m_camInfo);
 	if(!success)
 		return false;
 
+	return true;
+}
 
+/*
+******************************************************************
+* Method: Process Input
+******************************************************************
+* Private interface to recieve the input from the ASInput controller
+* and then do some processing to update the scene
+*
+* @param float - the frame time in FPS so all frames are synchronised
+* @return bool : True if successful callback, else False
+******************************************************************
+*/
+
+bool ASEngine::ProcessInput(float frameTime)
+{
+	// Bool to determine if the key is down (defaults to false and will be set 
+	// by querying the D3D input controller)
+	bool isKeyDown;
+	bool success;
+
+	m_player->SetFrameTime(frameTime);
+
+	// Handle input
+	isKeyDown = m_input->IsLeftArrowDown();
+	m_player->TurnLeft(isKeyDown);
+
+	isKeyDown = m_input->IsRightArrowDown();
+	m_player->TurnRight(isKeyDown);
+
+	isKeyDown = m_input->IsUpArrowDown();
+	m_player->MoveForward(isKeyDown);
+
+	isKeyDown = m_input->IsDownArrowDown();
+	m_player->MoveBackward(isKeyDown);
+
+	isKeyDown = m_input->IsSpaceBarDown();
+	m_player->MoveUpward(isKeyDown);
+	m_player->MoveDownward(false);
+
+	// Set the Camera info data structure
+	m_player->GetPosition(m_camInfo.posX, m_camInfo.posY, m_camInfo.posZ);
+	m_player->GetRotation(m_camInfo.rotX, m_camInfo.rotY, m_camInfo.rotZ);
+
+	// Everything was successful
 	return true;
 }
 

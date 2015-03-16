@@ -30,6 +30,10 @@
 #include "ASText.h"
 #include "ASFrustrum.h"
 #include "ASEnemies.h"
+#include "ASTerrain.h"
+#include "ASPlayer.h"
+#include "ASColorShader.h"
+#include "ASTerrainShader.h"
 
 /*
 *******************************************************************
@@ -42,6 +46,11 @@ const bool  VSYNC_ENABLED = true;
 const float SCREEN_DEPTH  = 1000.0f;
 const float SCREEN_NEAR   = 0.1f;
 
+// Spawn coordinates for the player in the world
+const float SPAWN_X = 20.0f;
+const float SPAWN_Y = 2.0f;
+const float SPAWN_Z = 0.0f;
+
 /*
 *******************************************************************
 * Class declaration
@@ -51,6 +60,16 @@ const float SCREEN_NEAR   = 0.1f;
 class ASGraphics
 {
 public:
+	// Struct to hold camera info
+	struct ASCameraInfo
+	{
+		float posX;
+		float posY;
+		float posZ;
+		float rotX;
+		float rotY;
+		float rotZ;
+	};
 	// Constructors and Destructors
 	ASGraphics();
 	ASGraphics(const ASGraphics&);
@@ -58,13 +77,15 @@ public:
 
 	// Public methods
 	bool Init(int, int, HWND);
-	bool UpdateFrame(float, float, float, float);
+	bool UpdateFrame(ASCameraInfo);
 	bool RenderScene();
 	void Release();
 
 private:
 	// Private member variables
+	ASColorShader*   m_colorShader;
 	ASLightShader*   m_lightShader;
+	ASTerrainShader* m_terrainShader;
 	ASLight*         m_light;
 	ASDirect3D*      m_D3D;
 	ASCamera*        m_Camera;
@@ -72,6 +93,8 @@ private:
 	ASText*          m_Text;
 	ASFrustrum*      m_Frustum;
 	ASEnemies*       m_EnemyList;
+	ASTerrain*       m_WorldTerrain;
+	ASPlayer*        m_player;
 };
 
 #endif

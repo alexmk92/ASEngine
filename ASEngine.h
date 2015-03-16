@@ -70,6 +70,7 @@ private:
 	// Private methoder
 	bool DispatchASEvent();
 	void InitASWindow(int&, int&);
+	bool ProcessInput(float);
 	void CloseASWindow();
 
 private:
@@ -77,6 +78,7 @@ private:
 	LPCWSTR     m_appName;
 	HINSTANCE   m_hInstance;
 	HWND        m_hwnd;
+	ASGraphics::ASCameraInfo m_camInfo;
 
 	ASInput*    m_input;
 	ASGraphics* m_graphics;

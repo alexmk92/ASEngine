@@ -54,11 +54,13 @@ public:
 	void StrafeLeft(bool);
 	void StrafeRight(bool);
 	void MoveForward(bool);
+	void MoveUpward(bool);
+	void MoveDownward(bool);
 	void MoveBackward(bool);
 	void LookUpward(bool);
 	void LookDownward(bool);
 	void LookLeft(bool);
-	void LookLeft(bool);
+	void LookRight(bool);
 	void Die(bool);
 
 	// 
@@ -72,19 +74,23 @@ private:
 	float m_posY;
 	float m_posZ;
 
-	float m_rotZ;
+	float m_rotX;
 	float m_rotY;
 	float m_rotZ;
 
 	float m_runSpeed;
+	float m_climbSpeed;
 	float m_lookSpeed;
-	float m_turnSpeed;
+	float m_lTurnSpeed;
+	float m_rTurnSpeed;
 	float m_jumpHeight;
 
 	float m_weight;
 };
 
 const float GRAVITY = 9.82;
-const float MULTIPLIER = 0.35;
+const float MAX_SPEED_MULTIPLIER = 0.15;
+const float MAX_TURN_MULTIPLIER = 0.15f;
+const float MAX_LOOK_MULTIPLIER = 0.25;
 
 #endif
