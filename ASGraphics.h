@@ -28,12 +28,10 @@
 #include "ASLightShader.h"
 #include "ASLight.h"
 #include "ASText.h"
-#include "ASFrustrum.h"
 #include "ASEnemies.h"
-#include "ASTerrain.h"
 #include "ASPlayer.h"
 #include "ASColorShader.h"
-#include "ASTerrainShader.h"
+#include "ASQuadTree.h"
 
 /*
 *******************************************************************
@@ -95,6 +93,7 @@ private:
 	ASEnemies*       m_EnemyList;
 	ASTerrain*       m_WorldTerrain;
 	ASPlayer*        m_player;
+	ASQuadTree*      m_quadTree;
 };
 
 #endif

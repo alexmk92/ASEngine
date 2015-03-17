@@ -26,11 +26,11 @@ ASPlayer::ASPlayer()
 	m_rotY = 0.0f;
 	m_rotZ = 0.0f;
 
-	m_jumpHeight = 0;
-	m_runSpeed   = 0;
-	m_lTurnSpeed  = 0;
-	m_rTurnSpeed  = 0;
-	m_climbSpeed = 0;
+	m_jumpHeight  = 0.f;
+	m_runSpeed    = 0.f;
+	m_lTurnSpeed  = 0.f;
+	m_rTurnSpeed  = 0.f;
+	m_climbSpeed  = 0.f;
 }
 
 /*

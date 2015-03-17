@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <d3d11.h>
 #include <d3dx10math.h>
+#include "ASTexture.h"
 
 /*
 *******************************************************************
@@ -34,12 +35,14 @@ private:
 	struct ASVertex
 	{
 		D3DXVECTOR3 pos;
+		D3DXVECTOR2 texCoord;
 		D3DXVECTOR3 normal;
 	};
 	// Struct to hold information on the heightmap
 	struct ASHeightMap
 	{
 		D3DXVECTOR3 pos;
+		D3DXVECTOR2 texCoord;
 		D3DXVECTOR3 normals;
 	};
 	// Vector to calculate lighting between angles
@@ -54,34 +57,38 @@ public:
 	~ASTerrain();
 
 	// Public methods
-	bool Init(ID3D11Device*, char*);
+	bool Init(ID3D11Device*, char*, WCHAR*);
 	void Release();
-	void Render(ID3D11DeviceContext*);
 
-	int GetNumIndices();	// returns number of indices in the frustum
+	void GetVerticeArray(void*);	
 	int GetNumVertices();
+
+	ID3D11ShaderResourceView* GetTexture();
 
 private:
 	// Private methods
 	bool InitBuffers(ID3D11Device*);
-	void RenderBuffers(ID3D11DeviceContext*);
-	void ReleaseBuffers();
+
+	// Texturre handlign methods
+	void CalculateTextureCoords();
+	bool LoadTexture(ID3D11Device*, WCHAR*);
 
 	// Height map handling code
 	bool LoadHeightMap(char*);
 	void NormaliseHeightMap();
 	bool CalculateMapNormals();
-	void ReleaseHeightMap();
 
 	// Private member variables
 	int m_width;
 	int m_height;
 	int m_numVertices;
-	int m_numIndices;
 
+	ASVertex*     m_vertices;
+	ASTexture*    m_texture;
 	ASHeightMap*  m_heightMap;
-	ID3D11Buffer* m_vBuffer;	// Vertices for the terrain mesh
-	ID3D11Buffer* m_iBuffer;	// Indices for the terrain mesh
 };
+
+// controls the size of the sample for the texture
+const int TEXTURE_TILE_SIZE = 4;
 
 #endif

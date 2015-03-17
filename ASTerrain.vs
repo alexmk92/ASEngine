@@ -21,12 +21,14 @@ cbuffer ContstantBuffer
 struct VertexInputType
 {
 	float4 position : POSITION;
+	float2 texCoord : TEXCOORD0;
 	float3 normal   : NORMAL;
 };
 
 struct PixelInputType
 {
 	float4 position : SV_POSITION;
+	float2 texCoord : TEXCOORD0;
 	float3 normal   : NORMAL;
 };
 
@@ -41,7 +43,6 @@ struct PixelInputType
 PixelInputType TerrainVertexShader(VertexInputType inputVertex) 
 {
 	PixelInputType outputPixel;
-	float4 worldPos;
 
 	// Modify the vertex
 	inputVertex.position.w = 1.0f;
@@ -50,6 +51,9 @@ PixelInputType TerrainVertexShader(VertexInputType inputVertex)
 	outputPixel.position = mul(inputVertex.position, world);
 	outputPixel.position = mul(outputPixel.position, view);
 	outputPixel.position = mul(outputPixel.position, projection);
+
+	// Set the texture coordinates
+	outputPixel.texCoord = inputVertex.texCoord;
 
 	// Calculate the VN of the vertex against the world matrix (to get global lighting)
 	outputPixel.normal = mul(inputVertex.normal, (float3x3)world);

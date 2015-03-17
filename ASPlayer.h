@@ -59,8 +59,6 @@ public:
 	void MoveBackward(bool);
 	void LookUpward(bool);
 	void LookDownward(bool);
-	void LookLeft(bool);
-	void LookRight(bool);
 	void Die(bool);
 
 	// 

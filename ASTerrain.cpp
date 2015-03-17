@@ -26,6 +26,8 @@ ASTerrain::ASTerrain()
 	m_iBuffer     = 0;
 	m_vBuffer     = 0;
 	m_heightMap   = 0;
+	m_texture     = 0;
+	m_vertices    = 0;
 }
 
 /*
@@ -59,12 +61,8 @@ ASTerrain::~ASTerrain()
 * @return bool - True if successfully intiialised, else false
 */
 
-bool ASTerrain::Init(ID3D11Device* device, char* heightmapFile)
+bool ASTerrain::Init(ID3D11Device* device, char* heightmapFile, WCHAR* texFile)
 {
-	// Width and height of the terrain (its a 2D plane across the Y axis)
-	m_width  = 100;
-	m_height = 100;
-
 	// Attempt to load the heightmap and then normalise its vector
 	// so it can be passed to the geometry buffers
 	bool success = LoadHeightMap(heightmapFile);
@@ -76,6 +74,15 @@ bool ASTerrain::Init(ID3D11Device* device, char* heightmapFile)
 	// Calculate the normals for the terrain data and store them
 	// in the ASLightVertex struct to be passed to the rendering pipeline
 	success = CalculateMapNormals();
+	if(!success)
+		return false;
+
+	// Populate the class struct with information on where the texture should be mapped to
+	CalculateTextureCoords();
+
+	// Load the texture to be applied to the map, only once the texture coordinates
+	// have been mapped to the global struct
+	success = LoadTexture(device, texFile);
 	if(!success)
 		return false;
 
@@ -189,38 +196,20 @@ bool ASTerrain::LoadHeightMap(char* mapFile)
 
 bool ASTerrain::InitBuffers(ID3D11Device* device)
 {
-	HRESULT hr;
-
-	// Used to track the vertices and indices of the mesh
-	ASVertex*      vertices;
-	unsigned long* indices;
-
 	// Position of the terrain in 3D space
 	float posX = 0;
 	float posZ = 0;
-
-	// Buffers to be described to be sent to the rendering pipeline
-	D3D11_BUFFER_DESC vBufferDesc;
-	D3D11_BUFFER_DESC iBufferDesc;
-
-	// Data to be sent to the rendering pipeline
-	D3D11_SUBRESOURCE_DATA vData;
-	D3D11_SUBRESOURCE_DATA iData;
+	float texU = 0;
+	float texV = 0;
 
 	// Get the number of vertices and indices for the mesh, -1 from each
 	// height and width because C++ is 0 indexed, then * 6 to the total
 	// (two triangles per quad)
 	m_numVertices = (m_width - 1) * (m_height - 1) * 6;
-	m_numIndices  = m_numVertices;
 
 	// Create the veritce and indice arrays to populate buffers
-	vertices = new ASVertex[m_numVertices];
-	if(!vertices)
-		return false;
-
-	// Use long instead of int as meshes can become very large
-	indices = new unsigned long[m_numIndices];
-	if(!indices)
+	m_vertices = new ASVertex[m_numVertices];
+	if(!m_vertices)
 		return false;
 
 	// 
@@ -238,90 +227,168 @@ bool ASTerrain::InitBuffers(ID3D11Device* device)
 			int topR = (m_height * (j + 1)) + (i + 1);
 
 			// Build the triangles inside the quad
+
 			// Top left
-			vertices[currIndex].pos = D3DXVECTOR3(m_heightMap[topL].pos.x, m_heightMap[topL].pos.y, m_heightMap[topL].pos.z);
-			vertices[currIndex].normal = D3DXVECTOR3(m_heightMap[topL].normals.x, m_heightMap[topL].normals.y, m_heightMap[topL].normals.z);
-			indices[currIndex] = currIndex;
+			// set the texV coord to cover the top edge of the texture
+			texV = m_heightMap[topL].texCoord.y;
+			if(texV == 1.0f)
+				texV = 0.0f;
+			m_vertices[currIndex].pos      = D3DXVECTOR3(m_heightMap[topL].pos.x, m_heightMap[topL].pos.y, m_heightMap[topL].pos.z);
+			m_vertices[currIndex].texCoord = D3DXVECTOR2(m_heightMap[topL].texCoord.x, texV);
+			m_vertices[currIndex].normal   = D3DXVECTOR3(m_heightMap[topL].normals.x, m_heightMap[topL].normals.y, m_heightMap[topL].normals.z);
 			currIndex++;
 
 			// Top right
-			vertices[currIndex].pos = D3DXVECTOR3(m_heightMap[topR].pos.x, m_heightMap[topR].pos.y, m_heightMap[topR].pos.z);
-			vertices[currIndex].normal = D3DXVECTOR3(m_heightMap[topR].normals.x, m_heightMap[topR].normals.y, m_heightMap[topR].normals.z);
-			indices[currIndex] = currIndex;
+			// set the tex coords to cover top and right edge
+			texU = m_heightMap[topR].texCoord.x;
+			texV = m_heightMap[topR].texCoord.y;
+			if(texU == 1.0f)
+				texU = 0.0f;
+			if(texV == 1.0f)
+				texV = 0.0f;
+
+			m_vertices[currIndex].pos      = D3DXVECTOR3(m_heightMap[topR].pos.x, m_heightMap[topR].pos.y, m_heightMap[topR].pos.z);
+			m_vertices[currIndex].texCoord = D3DXVECTOR2(texU, texV);
+			m_vertices[currIndex].normal   = D3DXVECTOR3(m_heightMap[topR].normals.x, m_heightMap[topR].normals.y, m_heightMap[topR].normals.z);
 			currIndex++;
 
 			// Bottom left
-			vertices[currIndex].pos = D3DXVECTOR3(m_heightMap[botL].pos.x, m_heightMap[botL].pos.y, m_heightMap[botL].pos.z);
-			vertices[currIndex].normal = D3DXVECTOR3(m_heightMap[botL].normals.x, m_heightMap[botL].normals.y, m_heightMap[botL].normals.z);
-			indices[currIndex] = currIndex;
+			m_vertices[currIndex].pos      = D3DXVECTOR3(m_heightMap[botL].pos.x, m_heightMap[botL].pos.y, m_heightMap[botL].pos.z);
+			m_vertices[currIndex].texCoord = D3DXVECTOR2(m_heightMap[botL].texCoord.x, m_heightMap[botL].texCoord.y);
+			m_vertices[currIndex].normal   = D3DXVECTOR3(m_heightMap[botL].normals.x, m_heightMap[botL].normals.y, m_heightMap[botL].normals.z);
 			currIndex++;
 
 			// Bottom left
-			vertices[currIndex].pos = D3DXVECTOR3(m_heightMap[botL].pos.x, m_heightMap[botL].pos.y, m_heightMap[botL].pos.z);
-			vertices[currIndex].normal = D3DXVECTOR3(m_heightMap[botL].normals.x, m_heightMap[botL].normals.y, m_heightMap[botL].normals.z);
-			indices[currIndex] = currIndex;
+			m_vertices[currIndex].pos      = D3DXVECTOR3(m_heightMap[botL].pos.x, m_heightMap[botL].pos.y, m_heightMap[botL].pos.z);
+			m_vertices[currIndex].texCoord = D3DXVECTOR2(m_heightMap[botL].texCoord.x, m_heightMap[botL].texCoord.y);
+			m_vertices[currIndex].normal   = D3DXVECTOR3(m_heightMap[botL].normals.x, m_heightMap[botL].normals.y, m_heightMap[botL].normals.z);
+			currIndex++;
+
+			// Top right
+			// set the tex coords to cover top and right edge
+			texU = m_heightMap[topR].texCoord.x;
+			texV = m_heightMap[topR].texCoord.y;
+			if(texU == 1.0f)
+				texU = 0.0f;
+			if(texV == 1.0f)
+				texV = 0.0f;
+
+			m_vertices[currIndex].pos      = D3DXVECTOR3(m_heightMap[topR].pos.x, m_heightMap[topR].pos.y, m_heightMap[topR].pos.z);
+			m_vertices[currIndex].texCoord = D3DXVECTOR2(texU, texV);
+			m_vertices[currIndex].normal   = D3DXVECTOR3(m_heightMap[topR].normals.x, m_heightMap[topR].normals.y, m_heightMap[topR].normals.z);
 			currIndex++;
 
 			// Bottom right
-			vertices[currIndex].pos = D3DXVECTOR3(m_heightMap[topR].pos.x, m_heightMap[topR].pos.y, m_heightMap[topR].pos.z);
-			vertices[currIndex].normal = D3DXVECTOR3(m_heightMap[topR].normals.x, m_heightMap[topR].normals.y, m_heightMap[topR].normals.z);
-			indices[currIndex] = currIndex;
-			currIndex++;
-
-			// Bottom right
-			vertices[currIndex].pos = D3DXVECTOR3(m_heightMap[botR].pos.x, m_heightMap[botR].pos.y, m_heightMap[botR].pos.z);
-			vertices[currIndex].normal = D3DXVECTOR3(m_heightMap[botR].normals.x, m_heightMap[botR].normals.y, m_heightMap[botR].normals.z);
-			indices[currIndex] = currIndex;
+			texU = m_heightMap[botR].texCoord.x;
+			if(texU == 0.0f) 
+				texU = 1.0f;
+			m_vertices[currIndex].pos      = D3DXVECTOR3(m_heightMap[botR].pos.x, m_heightMap[botR].pos.y, m_heightMap[botR].pos.z);
+			m_vertices[currIndex].texCoord = D3DXVECTOR2(texU, m_heightMap[botR].texCoord.y);
+			m_vertices[currIndex].normal   = D3DXVECTOR3(m_heightMap[botR].normals.x, m_heightMap[botR].normals.y, m_heightMap[botR].normals.z);
 			currIndex++;
 
 		}
 	}
 
-	// Describe the vertex and index arrays 
-	vBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vBufferDesc.ByteWidth = sizeof(ASVertex) * m_numVertices;
-	vBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vBufferDesc.CPUAccessFlags = 0;
-	vBufferDesc.MiscFlags = 0;
-	vBufferDesc.StructureByteStride = 0;
-
-	// Give the subresource structure a pointer to the vertex data, then create
-	// the vertex buffer to be passed to the device
-	vData.pSysMem = vertices;
-	vData.SysMemPitch = 0;
-	vData.SysMemSlicePitch = 0;
-
-	hr = device->CreateBuffer(&vBufferDesc, &vData, &m_vBuffer);
-	if(FAILED(hr))
-		return false;
-
-	// Describe the index buffer
-	// Set up the description of the static index buffer.
-	iBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	iBufferDesc.ByteWidth = sizeof(unsigned long) * m_numIndices;
-	iBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	iBufferDesc.CPUAccessFlags = 0;
-	iBufferDesc.MiscFlags = 0;
-	iBufferDesc.StructureByteStride = 0;
-
-	// Give the subresource structure a pointer to the index data, then create the
-	// index buffer to be passed to the device
-	iData.pSysMem = indices;
-	iData.SysMemPitch = 0;
-	iData.SysMemSlicePitch = 0;
-
-	// Create the index buffer.
-	hr = device->CreateBuffer(&iBufferDesc, &iData, &m_iBuffer);
-	if(FAILED(hr))
-		return false;
-
-	// Release the local buffer descriptors
-	delete [] vertices;
-	delete [] indices;
-	vertices = 0;
-	indices  = 0;
-
 	// Everything was successful
+	return true;
+}
+
+/*
+*******************************************************************
+* METHOD: Get Texture
+*******************************************************************
+* Returns the current texture loaded for the map
+*
+* @return ID3D11ShaderResourceView* - pointer to the current texture
+*/
+
+ID3D11ShaderResourceView* ASTerrain::GetTexture()
+{
+	return m_texture->GetTexture();
+}
+
+/*
+*******************************************************************
+* METHOD: Calculate Texture Coords
+*******************************************************************
+* Calculates the texture coordinates for the terrain, this is done
+* by utilising the TEXTURE_TILE_SIZE global to repeat the tile to
+* ensure that qualit on the terrain is not lost, this is done by
+* storing portions of the texture data into the height map array
+*/
+
+void ASTerrain::CalculateTextureCoords()
+{
+	// Calculate how many times the texture coords need to be incremented (on each pass
+	// of the for loop, the increment value will be appended to texU and texV coords
+	// and then added to the heightMap struct)
+	float increment = (float)TEXTURE_TILE_SIZE / (float)m_width;
+	
+	// Textures are measured from 0.0f to 1.0f, this will keep track of that
+	float texU = 0.0f;
+	float texV = 1.0f;
+
+	// Calculate how many times the textures needs to be repeated
+	int texRepeat = m_width / TEXTURE_TILE_SIZE;
+
+	// Variables to track the number of texU and texV coordinates found
+	int texUCount = 0;
+	int texVCount = 0;
+
+	// Loop the height map and calculat the U, V coords for every vertex
+	for(int j = 0; j < m_height; j++)
+	{
+		for(int i = 0; i < m_width; i++)
+		{
+			// populate the heightmap vertex with the coords - on first iteration map them
+			// to the default texU and texV values, these will change as we increment through the
+			// loop
+			int currIndex = (m_height * j) + i;
+			m_heightMap[currIndex].texCoord.x = texU;
+			m_heightMap[currIndex].texCoord.y = texV;
+
+			// Increment the texU coordinate by the increment amount determined earlier
+			texU += increment;
+			texUCount++;
+
+			// Check if we have reached the end of the texture (textures range from 0.f to 1.f)
+			if(texUCount == texRepeat) {
+				texU = 0.0f;
+				texUCount = 0;
+			}
+		}
+
+		// Increment the tv coord 
+		texV -= increment;
+		texVCount++;
+
+		// Check if we have reached the top of the texture, if so loop to the start
+		if(texVCount == texRepeat) {
+			texV = 1.0f;
+			texVCount = 0;
+		}
+	}
+}
+
+/*
+*******************************************************************
+* METHOD: Load the map texture
+*******************************************************************
+* Loads the texture using the m_textures interface methods
+*
+* @return bool - True if successfully loaded, else false
+*/
+
+bool ASTerrain::LoadTexture(ID3D11Device* device, WCHAR* texFile)
+{
+	// Check we could create a texture object, then initialise it
+	m_texture = new ASTexture;
+	if(!m_texture)
+		return false;
+	if(!m_texture->Init(device, texFile))
+		return false;
+
 	return true;
 }
 
@@ -457,6 +524,8 @@ bool ASTerrain::CalculateMapNormals()
 	// Dispose of local resources
 	delete [] normals;
 	normals = 0;
+	
+	return true;
 }
 
 /*
@@ -476,59 +545,9 @@ void ASTerrain::NormaliseHeightMap()
 
 /*
 *******************************************************************
-* METHOD: Render
-*******************************************************************
-* Calls the private RenderBuffers interface 
-*
-* @param ID3D11DeviceContext* - ptr to the device context we are working with
-*/
-
-void ASTerrain::Render(ID3D11DeviceContext* deviceCtxt)
-{
-	RenderBuffers(deviceCtxt);
-}
-
-/*
-*******************************************************************
-* METHOD: Render Buffers
-*******************************************************************
-* Send the buffers to the graphics pipe line to be drawn to the 
-* scene, the drawing is handled in ASEngine 
-*
-* @param ID3D11DeviceContext* - ptr to the device we are using to render
-*/
-
-void ASTerrain::RenderBuffers(ID3D11DeviceContext* deviceCtxt)
-{
-	// Describe how the buffers are to be mapped in device mem
-	unsigned int stride = sizeof(ASVertex);
-	unsigned int offset = 0;
-
-	// Send the vertex and index buffers to the device
-	deviceCtxt->IASetVertexBuffers(0, 1, &m_vBuffer, &stride, &offset);
-	deviceCtxt->IASetIndexBuffer(m_iBuffer, DXGI_FORMAT_R32_UINT,0);
-
-	// Set the render format for the terrain
-	deviceCtxt->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-}
-
-/*
-*******************************************************************
 * METHOD: Get Indices
 *******************************************************************
 * Returns the number of indices in the terrain mesh
-*/
-
-int ASTerrain::GetNumIndices()
-{
-	return m_numIndices;
-}
-
-/*
-*******************************************************************
-* METHOD: Get Vertices
-*******************************************************************
-* Returns the number of vertices in the terrain mesh
 */
 
 int ASTerrain::GetNumVertices()
@@ -538,25 +557,27 @@ int ASTerrain::GetNumVertices()
 
 /*
 *******************************************************************
-* METHOD: Release
+* METHOD: Get Vertice Array
 *******************************************************************
-* Calls private interface disposal methods
+* Returns a pointer to the vertex array populated in this class
+*
+* @param void* - A copy of the vertex list in this class
 */
 
-void ASTerrain::Release()
+void ASTerrain::GetVerticeArray(void* vOut)
 {
-	ReleaseBuffers();
-	ReleaseHeightMap();
+	memcpy(vOut, m_vertices, sizeof(ASVertex) * m_numVertices);
 }
 
 /*
 *******************************************************************
-* METHOD: Release Height Map
+* METHOD: Release
 *******************************************************************
-* Disposes of the heightmap struct safely
+* Release all items held by the class and set their pointers to 
+* null
 */
 
-void ASTerrain::ReleaseHeightMap()
+void ASTerrain::Release()
 {
 	// Dispose of the height map
 	if(m_heightMap)
@@ -564,27 +585,17 @@ void ASTerrain::ReleaseHeightMap()
 		delete [] m_heightMap;
 		m_heightMap = 0;
 	}
-}
-
-/*
-*******************************************************************
-* METHOD: Release Buffers
-*******************************************************************
-* Disposes of the buffers safely
-*/
-
-void ASTerrain::ReleaseBuffers()
-{
-	// Dispose of the index buffer
-	if(m_iBuffer)
+	// Dispose of texture 
+	if(m_texture)
 	{
-		m_iBuffer->Release();
-		m_iBuffer = 0;
+		m_texture->Release();
+		m_texture = 0;
 	}
-	// Dispose of the vertex buffer
-	if(m_vBuffer)
+	// Release the vertice buffer
+	if(m_vertices)
 	{
-		m_vBuffer->Release();
-		m_vBuffer = 0;
+		delete [] m_vertices;
+		m_vertices = 0;
 	}
 }
+

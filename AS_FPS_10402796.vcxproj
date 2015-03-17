@@ -93,6 +93,7 @@
     <ClCompile Include="ASLightShader.cpp" />
     <ClCompile Include="ASModel.cpp" />
     <ClCompile Include="ASPlayer.cpp" />
+    <ClCompile Include="ASQuadTree.cpp" />
     <ClCompile Include="ASSound.cpp" />
     <ClCompile Include="ASTerrain.cpp" />
     <ClCompile Include="ASTerrainShader.cpp" />
@@ -121,6 +122,7 @@
     <ClInclude Include="ASLightShader.h" />
     <ClInclude Include="ASModel.h" />
     <ClInclude Include="ASPlayer.h" />
+    <ClInclude Include="ASQuadTree.h" />
     <ClInclude Include="ASSound.h" />
     <ClInclude Include="ASTerrain.h" />
     <ClInclude Include="ASTerrainShader.h" />

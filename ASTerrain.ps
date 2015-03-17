@@ -12,6 +12,7 @@
 */
 
 SamplerState sampleType;
+Texture2D shaderTexture;
 
 // This buffer described lighting on a pixel 
 // @member float3 - The direction the light is hitting the pixel from
@@ -22,16 +23,17 @@ SamplerState sampleType;
 // @note : memory allocated in 4byte chunks, failure to do so will effect the mapping
 cbuffer LightBuffer 
 {
-	float4 diffuseColor;
 	float4 ambientColor;
+	float4 diffuseColor;
 	float3 lightDirection;
-	float  padding
+	float  padding;
 };
 
 // TYPE DEFS
 struct PixelInputType
 {
 	float4 position : SV_POSITION;	// The position of the pixel rel to the world
+	float2 texCoord : TEXCOORD0;
 	float3 normal   : NORMAL;		// Vertex normal to calculate lighting
 };
 
@@ -45,9 +47,13 @@ struct PixelInputType
 float4 TerrainPixelShader(PixelInputType inputPixel) : SV_TARGET
 {
 	// local vars
-	float  lightIntensity;	// the brightness of the light 0.0f to 1.0f
+	float4 texColor;		// color of the texture, sampled from the given texture at the current pixel
 	float3 lightDir;		// the direction the light is hitting the surface
+	float  lightIntensity;	// the brightness of the light 0.0f to 1.0f
 	float4 color;			// the diffuse color
+
+	// Set the texture color based on the current sample
+	texColor = shaderTexture.Sample(sampleType, inputPixel.texCoord);
 
 	// all pixels in the scene will now recieve some ambient color, giving a more realistic effect
 	color = ambientColor;
@@ -67,6 +73,7 @@ float4 TerrainPixelShader(PixelInputType inputPixel) : SV_TARGET
 
 	// Saturate the color
 	color = saturate(color);
+	color = color * texColor;
 
 	return color;
 }

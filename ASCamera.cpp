@@ -78,9 +78,9 @@ void ASCamera::SetPosition(float x, float y, float z)
 
 void ASCamera::SetRotation(float x, float y, float z)
 {
-	m_rotX = 0;
-	m_rotY = 0;
-	m_rotZ = 0;
+	m_rotX = x;
+	m_rotY = y;
+	m_rotZ = z;
 }
 
 /*

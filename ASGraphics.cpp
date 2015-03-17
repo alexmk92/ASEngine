@@ -32,6 +32,7 @@ ASGraphics::ASGraphics()
 	m_WorldTerrain  = 0;
 	m_colorShader   = 0;
 	m_terrainShader = 0;
+	m_quadTree      = 0;
 }
 
 /*
@@ -97,6 +98,17 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	// Set the spawn location of the player
 	m_Camera->SetPosition(SPAWN_X, SPAWN_Y, SPAWN_Z);
 
+	// Initialise the new terrain object
+	m_WorldTerrain = new ASTerrain;
+	if(!m_WorldTerrain)
+		return false;
+
+	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapB.bmp", L"./textures/dirt01.dds");
+	if(!success) {
+		MessageBox(hwnd, L"Error when initialising the world terrain in ASGraphics.cpp.", L"Error", MB_OK);
+		return false;
+	}
+
 	// Initialise a new model object
 	m_Model = new ASModel;
 	if(!m_Model)
@@ -110,17 +122,6 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 	}
 
-	// Initialise a new ASLight object to illuminate the world!
-	m_light = new ASLight;
-	if(!m_light)
-		return false;
-
-	m_light->SetAmbient(0.15f, 0.15f, 0.15f, 1.0f);
-	m_light->SetDiffuse(1.0f, 1.0f, 1.0f, 1.0f);
-	m_light->SetDirection(0.0f, 0.0f, 1.0f);
-	m_light->SetSpecular(1.0f, 1.0f, 1.0f, 1.0f);
-	m_light->SetSpecularIntensity(32.0f);
-
 	// Initiase a new terrain shader
 	m_terrainShader = new ASTerrainShader;
 	if(!m_terrainShader)
@@ -130,36 +131,6 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	if(!success)
 	{
 		MessageBox(hwnd, L"Error when initialisng the ASTerrainshader.", L"Error", MB_OK);
-		return false;
-	}
-
-	// Initialise the new terrain object
-	m_WorldTerrain = new ASTerrain;
-	if(!m_WorldTerrain)
-		return false;
-
-	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapB.bmp");
-	if(!success) {
-		MessageBox(hwnd, L"Error when initialising the world terrain in ASGraphics.cpp.", L"Error", MB_OK);
-		return false;
-	}
-
-	// Initialise a new color shader
-	m_colorShader = new ASColorShader;
-	if(!m_colorShader)
-		return false;
-
-	m_colorShader->Init(m_D3D->GetDevice(), hwnd);
-	
-	// Initialise a new light shader
-	m_lightShader = new ASLightShader;
-	if(!m_lightShader)
-		return false;
-
-	success = m_lightShader->Init(m_D3D->GetDevice(), hwnd);
-	if(!success)
-	{
-		MessageBox(hwnd, L"Error when initialising the ASTexture object; check the Pixel and Vertex Shader", L"Error", MB_OK);
 		return false;
 	}
 
@@ -175,10 +146,30 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 	}
 
+	// Initialise a new ASLight object to illuminate the world!
+	m_light = new ASLight;
+	if(!m_light)
+		return false;
+
+	m_light->SetAmbient(0.45f, 0.45f, 0.45f, 1.0f);
+	m_light->SetDiffuse(1.0f, 1.0f, 1.0f, 1.0f);
+	m_light->SetDirection(-0.5f, -1.0f, 0.0f);
+
 	// Create frustrum
 	m_Frustum = new ASFrustrum;
 	if(!m_Frustum)
 		return false;
+
+	// Create the quad tree
+	m_quadTree = new ASQuadTree;
+	if(!m_quadTree)
+		return false;
+	success = m_quadTree->Init(m_D3D->GetDevice(), m_WorldTerrain);
+	if(!success)
+	{
+		MessageBox(hwnd, L"Could not initialise the quad tree", L"Error", MB_OK);
+		return false;
+	}
 
 	/*
 	// Create the text object.
@@ -271,12 +262,17 @@ bool ASGraphics::RenderScene()
 	m_D3D->GetProjectionMatrix(projection);
 	m_D3D->GetInterfaceMatrix(ortho);
 
+	// build the frustum
+	m_Frustum->ConstructFrustrum(SCREEN_DEPTH, projection, view);
+
 	// Build the terrain
-	m_WorldTerrain->Render(m_D3D->GetDeviceContext());
-	success = m_terrainShader->Render(m_D3D->GetDeviceContext(), m_WorldTerrain->GetNumIndices(), world, view, projection,
-									  m_light->GetAmbientColor(), m_light->GetDiffuseColor(), m_light->GetLightDirection());
+	success = m_terrainShader->SetShaderParameters(m_D3D->GetDeviceContext(), world, view, projection, m_light->GetAmbientColor(), 
+												   m_light->GetDiffuseColor(), m_light->GetLightDirection(), m_WorldTerrain->GetTexture());
 	if(!success)
 		return false;
+
+	// Render the terrain using the quad tree renderer
+	m_quadTree->Render(m_Frustum, m_terrainShader, m_D3D->GetDeviceContext());
 
 	// Present the rendered scene to the screen
 	m_D3D->RenderScene();
@@ -370,6 +366,13 @@ void ASGraphics::Release()
 		m_terrainShader->Release();
 		delete m_terrainShader;
 		m_terrainShader = 0;
+	}
+	// Release the quad tree
+	if(m_quadTree)
+	{
+		m_quadTree->Release();
+		delete m_quadTree;
+		m_quadTree = 0;
 	}
 
 	return;

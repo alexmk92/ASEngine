@@ -61,7 +61,7 @@ bool ASTerrainShader::Init(ID3D11Device* device, HWND handle)
 {
 	// Load vertex and pixel shaders from source file, these will be compiled via HLSL in
 	// the InitShader method
-	bool success = InitShader(device, handle, L"./ASLight.vs", L"./ASLight.ps");
+	bool success = InitShader(device, handle, L"./ASTerrain.vs", L"./ASTerrain.ps");
 	if(!success)
 		return false;
 	else
@@ -79,42 +79,6 @@ void ASTerrainShader::Release()
 {
 	ReleaseShader();
 	return;
-}
-
-/*
-******************************************************************
-* METHOD: Render
-******************************************************************
-* Sets the shaders parameters and then calls RenderShader()
-* to draw the model using the HLSL shader.
-*
-* @param ID3D11DeviceContext* - the device we are using to render
-* @param int - The number of indices for the model
-* @param D3DXMATRIX - The World Matrix
-* @param D3DXMATRIX - The View Matrix
-* @param D3DXMATRIX - The Projection Matrix
-* @param ID3D11ShaderResourceView* - Pointer to the texture resource we're using
-* @param D3DXVECTOR3 - A vector describing the direction light is poiting
-* @param D3DXVECTOR4 - A vector describing the diffuse color of the light hitting the surface
-* @param D3DXVECTOR3 - The direction the camera vector is facing
-* @param D3DXVECTOR4 - A vector describing the specular color
-* @param float       - Float describing the intensity of the specular (higher number = higher spec)
-* 
-*
-* @return bool - True if the shaders were set and sent successfully, else false
-*/
-
-bool ASTerrainShader::Render(ID3D11DeviceContext* deviceContext, int numIndices, D3DXMATRIX world, D3DXMATRIX view, 
-						   D3DXMATRIX projection,  D3DXVECTOR4 ambient, D3DXVECTOR4 diffuse, D3DXVECTOR3 lightDir)
-{
-	// Set the shader, capture its success callback 
-	bool success = SetShaderParameters(deviceContext, world, view, projection, ambient, diffuse, lightDir);
-	if(!success)
-		return false;
-	
-	// Render prepared buffers via the shader
-	RenderShader(deviceContext, numIndices);
-	return true;
 }
 
 /*
@@ -143,7 +107,7 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	ID3D10Blob* psBuffer = 0;
 
 	// Other descriptors for buffer
-	D3D11_INPUT_ELEMENT_DESC polyLayout[3];	// mapped to the vector in ASLight.h to be passed to shader
+	D3D11_INPUT_ELEMENT_DESC polyLayout[3];	
 
 	D3D11_BUFFER_DESC  cBufferDesc;
 	D3D11_BUFFER_DESC  lightBufferDesc;
@@ -153,7 +117,7 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 
 	// Compile shaders into buffers - any errors are caught and pushed to an error stack, if the 
 	// file is not found user is alerted by a popup message
-	hr = D3DX11CompileFromFile(vsFile, NULL, NULL, "LightVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 
+	hr = D3DX11CompileFromFile(vsFile, NULL, NULL, "TerrainVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 
 							   0, NULL, &vsBuffer, &err, NULL);
 	if(FAILED(hr))
 	{
@@ -166,7 +130,7 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	}
 
 	// Compile the pixel shader
-	hr = D3DX11CompileFromFile(psFile, NULL, NULL, "LightPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS,
+	hr = D3DX11CompileFromFile(psFile, NULL, NULL, "TerrainPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS,
 							  0, NULL, &psBuffer, &err, NULL);
 	if(FAILED(hr))
 	{
@@ -198,9 +162,10 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	polyLayout[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	polyLayout[0].InstanceDataStepRate = 0;
 
-	polyLayout[1].SemanticName  = "TEXCOORD";
+	// Describe the tex coord information, this will be loaded into the input layout var
+	polyLayout[1].SemanticName = "TEXCOORD";
 	polyLayout[1].SemanticIndex = 0;
-	polyLayout[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+	polyLayout[1].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	polyLayout[1].InputSlot = 0;
 	polyLayout[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	polyLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
@@ -330,7 +295,7 @@ void ASTerrainShader::RaiseShaderError(ID3D10Blob* msg, HWND handle, WCHAR* shad
 */
 
 bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX world, D3DXMATRIX view, D3DXMATRIX projection, 
-										  D3DXVECTOR4 ambient, D3DXVECTOR4 diffuse, D3DXVECTOR3 lightDir)
+										  D3DXVECTOR4 ambient, D3DXVECTOR4 diffuse, D3DXVECTOR3 lightDir, ID3D11ShaderResourceView* texture)
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE res;
@@ -338,7 +303,6 @@ bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 	// Buffer pointers to be passed to the shader
 	ASConstantBuffer* cBuffer;
 	ASLightBuffer*    lBuffer;
-	ASCameraBuffer*   camBuffer;
 
 	unsigned int bufferNum;
 
@@ -383,8 +347,8 @@ bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 
 	// Write the info from the buffer to m_lBuffer to be processed by the Vertex and Pixel shaders,
 	// also add padding to ensure the struct remains a multiple of 16 - this struct is 8 bytes
-	lBuffer->diffuse  = diffuse;
 	lBuffer->ambient  = ambient;
+	lBuffer->diffuse  = diffuse;
 	lBuffer->lightDir = lightDir;
 	lBuffer->padding  = 0.0f;
 
@@ -395,6 +359,7 @@ bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 	// at the next stage of the render pipeline
 	bufferNum = 0;
 	deviceContext->PSSetConstantBuffers(bufferNum, 1, &m_lBuffer);
+	deviceContext->PSSetShaderResources(0, 1, &texture);
 
 	return true;
 }

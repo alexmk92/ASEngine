@@ -35,8 +35,8 @@ private:
 	// Struct to hold the light buffer, mapped to that in the vertex shader
 	struct ASLightBuffer
 	{
-		D3DXVECTOR4 diffuse;
 		D3DXVECTOR4 ambient;
+		D3DXVECTOR4 diffuse;
 		D3DXVECTOR3 lightDir;
 		float padding;
 	};
@@ -49,18 +49,14 @@ public:
 	// Public methods
 	bool Init(ID3D11Device*, HWND);
 	void Release();
-	bool Render(ID3D11DeviceContext*, int, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
-				D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3);
-
+	void RenderShader(ID3D11DeviceContext*, int);
+	bool SetShaderParameters(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
+							 D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3, ID3D11ShaderResourceView*);
 private:
 	// Private methods
 	bool InitShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);
 	void ReleaseShader();
 	void RaiseShaderError(ID3D10Blob*, HWND, WCHAR*);
-
-	bool SetShaderParameters(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
-							 D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3);
-	void RenderShader(ID3D11DeviceContext*, int);
 };
 
 #endif
