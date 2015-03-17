@@ -60,6 +60,9 @@ bool ASQuadTree::Init(ID3D11Device* device, ASTerrain* terrain)
 	float centerZ;
 
 	int numVertices = terrain->GetNumVertices();
+
+	// Calculate the number of faces in the mesh and initialise the vertex array which will
+	// hold all data on this class
 	m_numTriangles  = numVertices / 3;
 	m_vertices = new ASVertex[numVertices];
 	if(!m_vertices)
@@ -69,7 +72,7 @@ bool ASQuadTree::Init(ID3D11Device* device, ASTerrain* terrain)
 	terrain->GetVerticeArray((void*)m_vertices);
 
 	// Populate the output parameters based on the mesh dimension
-	CalculateMeshDimensions(numVertices, centerX, centerZ, quadWidth); 
+	GetMeshDimensions(numVertices, centerX, centerZ, quadWidth); 
 
 	// Create the parent node for the tree structure, then build the tree recursively
 	// based on the parent node and data passed back from output parameters
@@ -77,7 +80,8 @@ bool ASQuadTree::Init(ID3D11Device* device, ASTerrain* terrain)
 	if(!m_parentNode)
 		return false;
 
-	CreateTreeNode(m_parentNode, centerX, centerZ, quadWidth, device);
+	// Recursive function to build the tree with vert data
+	AppendNode(m_parentNode, centerX, centerZ, quadWidth, device);
 
 	// Dispose of the vertex list as it has been populated and no longer serves purpose
 	if(m_vertices)
@@ -124,7 +128,7 @@ void ASQuadTree::Render(ASFrustrum* frustum, ASTerrainShader* shader, ID3D11Devi
 * @param ID3D11Device* - pointer to the rendering device
 */
 
-void ASQuadTree::CreateTreeNode(ASNode* node, float posX, float posZ, float width, ID3D11Device* device)
+void ASQuadTree::AppendNode(ASNode* node, float posX, float posZ, float width, ID3D11Device* device)
 {
 	// list of vertices and indices
 	ASVertex*      vertices;
@@ -136,12 +140,12 @@ void ASQuadTree::CreateTreeNode(ASNode* node, float posX, float posZ, float widt
 	D3D11_SUBRESOURCE_DATA iData;
 
 	// Set the initial structure of the node, set all unkown parameters to null pointers
-	node->pos.x = posX;
-	node->pos.y = 0.0f; // never used, but safe to populate structure!
-	node->pos.z = posZ;
+	node->posX = posX;
+	node->posZ = posZ;
 	node->width = width;
 	// Set buffers and triangle total to null for now
 	node->numTriangles = 0;
+	node->vertices = 0;
 	node->vBuffer = 0;
 	node->iBuffer = 0;
 	// Set all child nodes to null pointers for now
@@ -158,34 +162,41 @@ void ASQuadTree::CreateTreeNode(ASNode* node, float posX, float posZ, float widt
 	// Node is empty, this node in tree is complete and doesn't need to recurse deeper
 	if(numTriangles == 0)
 		return;
+
 	// Too many triangles in this subset, create 4 sub nodes to hold the data
-	if(numTriangles > MAX_POLYS)
+	if(numTriangles > MAX_TRIANGLES)
 	{
-		for(int i = 0; i < 4; i++)
+		for(int i = 0; i < NODE_CHILDREN; i++)
 		{
-			// Calculate child nodes offset
+			// Calculate child nodes offset by multiplying either -1.0 of 1.0 by the radius
+			// of the quad
 			float offsetX = (((i % 2) < 1)? -1.0f : 1.0f) * (width / 4.0f);
 			float offsetZ = (((i % 4) < 2)? -1.0f : 1.0f) * (width / 4.0f);
 
-			// See if the new node has any triangles
+			// See if the new node has any triangles within the current diameter of the quad
 			int total = GetTriangleCount((posX + offsetX), (posZ + offsetZ), (width / 2.0f));
 			if(total > 0)
 			{
 				// The new node has triangles, create a child node at the current index and call the
 				// CreateTreeNode method to create the new child node
 				node->nodes[i] = new ASNode;
-				CreateTreeNode(node->nodes[i], (posX + offsetX), (posZ + offsetZ), (width / 2.0f), device);
+				AppendNode(node->nodes[i], (posX + offsetX), (posZ + offsetZ), (width / 2.0f), device);
 			}
 		}
+		// Computed this node, restart loop
+		return;
 	}
 	// There is no need to create a child node as the number of triangles in this section of the tree are within
 	// the threshold, thereofre this node is at the bottom of the tree
 	node->numTriangles = numTriangles;
-	int numVertices = numTriangles * 3;
+	int numVertices    = numTriangles * 3;
 
-	// Create an indice and vertice list to send to the shader
-	vertices = new ASVertex[numVertices];
-	indices  = new unsigned long[numVertices];
+	// Create an indice and vertice list to send to the shader, the node vertice list
+	// keeps track of all vertices inside the current node, for quick line intersection
+	// processing
+	vertices       = new ASVertex[numVertices];
+	indices        = new unsigned long[numVertices];
+	node->vertices = new ASVector[numVertices];
 
 	// Use a tracker variable to populate the indice array, if we used the
 	// i iterator, then if a successful triangle wasn't in the view we would have
@@ -196,16 +207,23 @@ void ASQuadTree::CreateTreeNode(ASNode* node, float posX, float posZ, float widt
 	for(int i = 0; i < m_numTriangles; i++)
 	{
 		// Check if the triangle is in the frustum, if it is, then add it to the vertex array
-		bool success = IsTriangleInQuad(i, posX, posZ, width);
-		if(success)
+		if(IsTriangleInQuad(i, posX, posZ, width))
 		{
 			// Get the next three vertices for this triangle from the vertex list, we multiply
-			// by three as m_vertices had its index count multiplied by 3 to account
-			// for each face
+			// by three as each iteration of the loop will extract three vertices for each face
+			// (extract corresponding 3 vertices from global array dependent on
+			// the current position of this array (tracked by external currIndex var, instead of i)
+			// * Also, the nodes vertice list is populated as well as the global vertice list, this
+			// is so each node can keep track of its own vertices for line intersection checking later
 			int vertIndex = i * 3;
 			vertices[currIndex].pos      = m_vertices[vertIndex].pos;
 			vertices[currIndex].texCoord = m_vertices[vertIndex].texCoord;
 			vertices[currIndex].norm     = m_vertices[vertIndex].norm;
+			// Set nodes vertice buffer
+			node->vertices[currIndex].x  = m_vertices[vertIndex].pos.x;
+			node->vertices[currIndex].y  = m_vertices[vertIndex].pos.y;
+			node->vertices[currIndex].z  = m_vertices[vertIndex].pos.z;
+			// Set indice buffer
 			indices[currIndex] = currIndex;
 			currIndex++;
 
@@ -214,13 +232,24 @@ void ASQuadTree::CreateTreeNode(ASNode* node, float posX, float posZ, float widt
 			vertices[currIndex].pos      = m_vertices[vertIndex].pos;
 			vertices[currIndex].texCoord = m_vertices[vertIndex].texCoord;
 			vertices[currIndex].norm     = m_vertices[vertIndex].norm;
+			// Set nodes vertice buffer
+			node->vertices[currIndex].x  = m_vertices[vertIndex].pos.x;
+			node->vertices[currIndex].y  = m_vertices[vertIndex].pos.y;
+			node->vertices[currIndex].z  = m_vertices[vertIndex].pos.z;
+			// Set indice buffer
 			indices[currIndex] = currIndex;
 			currIndex++;
 
 			// Get the last vertex for this face
+			vertIndex++;
 			vertices[currIndex].pos      = m_vertices[vertIndex].pos;
 			vertices[currIndex].texCoord = m_vertices[vertIndex].texCoord;
 			vertices[currIndex].norm     = m_vertices[vertIndex].norm;
+			// Set nodes vertice buffer
+			node->vertices[currIndex].x  = m_vertices[vertIndex].pos.x;
+			node->vertices[currIndex].y  = m_vertices[vertIndex].pos.y;
+			node->vertices[currIndex].z  = m_vertices[vertIndex].pos.z;
+			// Set indice buffer
 			indices[currIndex] = currIndex;
 			currIndex++;
 		}
@@ -242,6 +271,8 @@ void ASQuadTree::CreateTreeNode(ASNode* node, float posX, float posZ, float widt
 	vData.SysMemPitch = 0;
 	vData.SysMemSlicePitch = 0;
 
+	device->CreateBuffer(&vBufferDesc, &vData, &node->vBuffer);
+
 	/*
 	* INDEX BUFFER DESC
 	*/
@@ -254,13 +285,12 @@ void ASQuadTree::CreateTreeNode(ASNode* node, float posX, float posZ, float widt
 	iBufferDesc.StructureByteStride = 0;
 
 	// Give the subresource structure a pointer to the vertex data.
-	iData.pSysMem = vertices;
+	iData.pSysMem = indices;
 	iData.SysMemPitch = 0;
 	iData.SysMemSlicePitch = 0;
 
-	// Create the buffers on the device
+	// Create the buffers on the nodes buffer to be rendered
 	device->CreateBuffer(&iBufferDesc, &iData, &node->iBuffer);
-	device->CreateBuffer(&vBufferDesc, &vData, &node->vBuffer);
 
 	// Clean up local resources as we no longer need them
 	delete [] vertices;
@@ -291,14 +321,16 @@ void ASQuadTree::RenderNode(ASNode* node, ASFrustrum* frustum, ID3D11DeviceConte
 	// the Y parameter is not important, so long as we have the X and Y culling values set
 	// an unsuccessful callback the parent node nor its children will have it in the view,
 	// therefore we break out the function
-	bool success = frustum->CheckCube(node->pos.x, 0.0f, node->pos.z, (node->width / 2.0f));
+	bool success = frustum->CheckCube(node->posX, 0.0f, node->posZ, (node->width / 2.0f));
 	if(!success)
 		return;
 
 	// Check which child node can see whats in the current frustum
 	int count = 0;
-	for(int i = 0; i < 4; i++)
+	for(int i = 0; i < NODE_CHILDREN; i++)
 	{
+		// Only populate a child node if it exists in the tree, 0 indicates a null pointer
+		// to the node at the current index
 		if(node->nodes[i] != 0)
 		{
 			count++;
@@ -307,7 +339,7 @@ void ASQuadTree::RenderNode(ASNode* node, ASFrustrum* frustum, ID3D11DeviceConte
 	}
 
 	// Check if the count is not 0, if it is then we can assume that the parent nodes have
-	// no triangles (because the child nodes contain them
+	// no triangles (because the child nodes contain them, therefore we need to traverse no further)
 	if(count != 0)
 		return;
 
@@ -320,9 +352,9 @@ void ASQuadTree::RenderNode(ASNode* node, ASFrustrum* frustum, ID3D11DeviceConte
 	deviceCtx->IASetIndexBuffer(node->iBuffer, DXGI_FORMAT_R32_UINT, 0);
 	deviceCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// Render the polygons for this node in the shader
-	int numIndices = node->numTriangles * 3;
-	shader->RenderShader(deviceCtx, numIndices);
+	// Render the polygons for this node in the shader with the amount of indices 
+	// calculated from total polygons * 3 (for each point in triangle)
+	shader->RenderShader(deviceCtx, (node->numTriangles * 3));
 
 	// Set the amount of polys that have been rendered for the frame
 	m_numPolys += node->numTriangles;
@@ -330,7 +362,7 @@ void ASQuadTree::RenderNode(ASNode* node, ASFrustrum* frustum, ID3D11DeviceConte
 
 /*
 ******************************************************************
-* METHOD: Calculate Mesh Dimensions
+* METHOD: Get Mesh Dimensions
 ******************************************************************
 * Determines the quad size of the parent node, this is calculated
 * by analysing all vertices in the terrains list of vertices.
@@ -343,7 +375,7 @@ void ASQuadTree::RenderNode(ASNode* node, ASFrustrum* frustum, ID3D11DeviceConte
 * @param float& - The output parameter for the quad width
 */
 
-void ASQuadTree::CalculateMeshDimensions(int numVertices, float& centerX, float& centerZ, float& quadWidth)
+void ASQuadTree::GetMeshDimensions(int numVertices, float& centerX, float& centerZ, float& quadWidth)
 {
 	// initialise the output parameters
 	centerX = 0.0f;
@@ -375,10 +407,14 @@ void ASQuadTree::CalculateMeshDimensions(int numVertices, float& centerX, float&
 		float d = fabsf(m_vertices[i].pos.z - centerZ);
 
 		// compute the new max/min values for the mesh
-		if(w > maxWidth) maxWidth = w;
-		if(d > maxDepth) maxDepth = d;
-		if(w < minWidth) minWidth = w;
-		if(d < minDepth) minDepth = d;
+		if(w > maxWidth) 
+			maxWidth = w;
+		if(d > maxDepth) 
+			maxDepth = d;
+		if(w < minWidth) 
+			minWidth = w;
+		if(d < minDepth) 
+			minDepth = d;
 	}
 
 	// Find the maximum of all three components
@@ -387,7 +423,7 @@ void ASQuadTree::CalculateMeshDimensions(int numVertices, float& centerX, float&
 
 	// Set the max bounds of the quad by multiplying the maximum of the X and Z values by 2
 	// this will give the viewing diameter of the quad
-	quadWidth = max(maxX, maxZ) * 2.0f;
+	quadWidth = __max(maxX, maxZ) * 2.0f;
 }
 
 /*
@@ -424,16 +460,236 @@ int ASQuadTree::GetPolyCount()
 int ASQuadTree::GetTriangleCount(float posX, float posZ, float width)
 {
 	int count = 0;
-
 	// Check which triangles in the mesh should be contained in this node
 	for(int i = 0; i < m_numTriangles; i++)
 	{
-		bool success = IsTriangleInQuad(i, posX, posZ, width);
-		if(success)
+		if(IsTriangleInQuad(i, posX, posZ, width))
 			count++;
 	}
 
 	return count;
+}
+
+/*
+******************************************************************
+* METHOD: Get Terrain Height at Position
+******************************************************************
+* Returns the height of the terrain at a given X,Z position.
+* 
+* @param float  - the x position to locate
+* @param float  - the z position to locate
+* @param float& - output height value based on x,z coord
+*/
+
+bool ASQuadTree::GetTerrainHeightAtPosition(float posX, float posZ, float& height)
+{
+	// Const used to determine viewing radius of the quad
+	float N_RADIUS = m_parentNode->width / 2.0f;
+
+	// Determine the bounds of the quad view
+	float minX = m_parentNode->posX - N_RADIUS;
+	float maxX = m_parentNode->posX + N_RADIUS;
+	float minZ = m_parentNode->posZ - N_RADIUS;
+	float maxZ = m_parentNode->posZ + N_RADIUS;
+
+	// Check that the points are within bounds of the min max clips
+	if((posX < minX) || (posX > maxX) || (posZ < minZ) || (posZ > maxZ))
+		return false;
+
+	// Find the node in the terrain which coincides with the poly at this location
+	GetNodeAtPosition(m_parentNode, posX, posZ, height);
+	return true;
+}
+
+/*
+******************************************************************
+* METHOD: Get Node at Position
+******************************************************************
+* Invoked by GetHeightAtPosition, this method will output the 
+* height of the node at the given X, Z position.   This is 
+* calculated by searching its vertice list to locate which triangle
+* matches the X,Z coordinates
+*
+* It should also be noted that this methods first call always starts
+* at the parent node, and traverses through the tree until a match
+* has been found.
+* 
+* @param ASNode* - pointer to the node tree to traverse
+* @param float   - the x position to locate
+* @param float   - the z position to locate
+* @param float&  - output height value based on x,z coord
+*/
+
+void ASQuadTree::GetNodeAtPosition(ASNode* node, float x, float z, float& height)
+{
+	// Get the dimensions of the node by finding its bounds based on the 
+	// x,z relative to the radius of the quad width
+	float N_RADIUS = node->width / 2.0f;
+
+	float minX = node->posX - N_RADIUS;
+	float maxX = node->posX + N_RADIUS;
+	float minZ = node->posZ - N_RADIUS;
+	float maxZ = node->posZ + N_RADIUS;
+
+	// Check if the current node contains the triangles to be analysed
+	if((x < minX) || (x > maxX) || (z < minZ) || (z > maxZ))
+		return;
+
+	// Check whether this node has any children which need to be traversed
+	int count = 0;
+	for(int i = 0; i < NODE_CHILDREN; i++)
+	{
+		if(node->nodes[i] != 0)
+		{
+			count++;
+			GetNodeAtPosition(node->nodes[i], x, z, height);
+		}
+	}
+	// If child nodes were found, break out of traverse as the node will be in 
+	// one of those child nodes
+	if(count > 0)
+		return;
+
+	// No children were found, the polygon we're looking for is in this node
+	for(int i = 0; i < node->numTriangles; i++)
+	{
+		int vertIndex = i * 3;	// Get the next three vertices on each loop (because we read 3 each time per face)
+
+		D3DXVECTOR3 vecA = D3DXVECTOR3(node->vertices[vertIndex].x, node->vertices[vertIndex].y, node->vertices[vertIndex].z);
+		vertIndex++;
+		D3DXVECTOR3 vecB = D3DXVECTOR3(node->vertices[vertIndex].x, node->vertices[vertIndex].y, node->vertices[vertIndex].z);
+		vertIndex++;
+		D3DXVECTOR3 vecC = D3DXVECTOR3(node->vertices[vertIndex].x, node->vertices[vertIndex].y, node->vertices[vertIndex].z);
+
+		// Check if the current polygon corresponds to the triangle we want to find.
+		if(GetTriangleHeightAtPosition(x, z, height, vecA, vecB, vecC) == true)
+ 			return;
+	}
+
+	return;
+}
+
+/*
+******************************************************************
+* METHOD: Get Triangle Height at Position
+******************************************************************
+* Checks whether a given line intersects an input triangle, this
+* is calculated by testing if the position (X,Z) falls inside the
+* bounds of the given face.  If this is true, the height at the
+* given line is calculated and returned
+* 
+* @param float  - the x position we are testing at
+* @param float  - the y position we are testing at
+* @param float& - the output height for a valid interset
+* @param D3DXVECTOR3 - The first vertex
+* @param D3DXVECTOR3 - The second vertex
+* @param D3DXVECTOR3 - The third vertex
+*
+* @return bool - true if successful, else false
+*/
+
+bool ASQuadTree::GetTriangleHeightAtPosition(float x, float z, float& heightOut, D3DXVECTOR3 vecA, D3DXVECTOR3 vecB, D3DXVECTOR3 vecC)
+{
+	// Starting position of the ray that is being cast.
+	D3DXVECTOR3 start = D3DXVECTOR3(x, 0.0f, z);
+	D3DXVECTOR3 dir   = D3DXVECTOR3(0.0f, -1.0f, 0.0f);
+
+	// Calculate the two edges from the three points given.
+	D3DXVECTOR3 edgeA = D3DXVECTOR3(vecB.x - vecA.x, vecB.y - vecA.y, vecB.z - vecA.z);
+	D3DXVECTOR3 edgeB = D3DXVECTOR3(vecC.x - vecA.x, vecC.y - vecA.y, vecC.z - vecA.z);
+
+	// Calculate the normal of the triangle from the two edges.
+	D3DXVECTOR3 norm = D3DXVECTOR3( (edgeA.y * edgeB.z) - (edgeA.z * edgeB.y),
+									(edgeA.z * edgeB.x) - (edgeA.x * edgeB.z),
+									(edgeA.x * edgeB.y) - (edgeA.y * edgeB.x));
+
+	// Calculate the magintude of the vector, then from that normalis the vector and
+	// then calculate the distance from origin to plane
+	float magnitude = (float)sqrt((norm.x * norm.x) + (norm.y * norm.y) + (norm.z * norm.z));
+	norm.x = norm.x / magnitude;
+	norm.y = norm.y / magnitude;
+	norm.z = norm.z / magnitude;
+
+	float distance = ((-norm.x * vecA.x) + (-norm.y * vecA.y) + (-norm.z * vecA.z));
+
+	// Get the denominator, ensuring its value is not < 0 (shouldn't happen)
+	float denominator = ((norm.x * dir.x) + (norm.y * dir.y) + (norm.z * dir.z));
+	if(fabs(denominator) < 0.0001f)
+		return false;
+
+	// Get the numerator, then calculate the point of intersection
+	float numerator = -1.0f * (((norm.x * start.x) + (norm.y * start.y) + (norm.z * start.z)) + distance);
+	float intersect = numerator / denominator;
+
+	// Get the vector at the intersection point
+	D3DXVECTOR3 vecIntersect = D3DXVECTOR3( start.x + (dir.x * intersect),
+										    start.y + (dir.y * intersect),
+										    start.z + (dir.z * intersect));
+
+	// Calculate the edges of the intersect vector
+	D3DXVECTOR3 intersectEdgeA = D3DXVECTOR3( vecB.x - vecA.x, vecB.y - vecA.y, vecB.z - vecA.z );
+	D3DXVECTOR3 intersectEdgeB = D3DXVECTOR3( vecC.x - vecB.x, vecC.y - vecB.y, vecC.z - vecB.z );
+	D3DXVECTOR3 intersectEdgeC = D3DXVECTOR3( vecA.x - vecC.x, vecA.y - vecC.y, vecA.z - vecC.z );
+
+	// Calculate the normal for the first edge.
+	D3DXVECTOR3 edgeNormal = D3DXVECTOR3((intersectEdgeA.y * norm.z) - (intersectEdgeA.z * norm.y),
+										 (intersectEdgeA.z * norm.x) - (intersectEdgeA.x * norm.z),
+										 (intersectEdgeA.x * norm.y) - (intersectEdgeA.y * norm.x));
+
+	// Calculate determinant to check whether the point lies within the bounds of the
+	// vec (inside, outside or edge of given point), the determinent tells us the bounds of the point
+	// relative to the input vector - this process is repeated for each of the edges, from that
+	// a height is for the intersecting vector
+	D3DXVECTOR3 vecTmp = D3DXVECTOR3(vecIntersect.x - vecA.x,
+									 vecIntersect.y - vecA.y,
+									 vecIntersect.z - vecA.z);
+
+	float determinant = ((edgeNormal.x * vecTmp.x) + (edgeNormal.y * vecTmp.y) + (edgeNormal.z * vecTmp.z));
+
+	// Check if it is outside.
+	if(determinant > 0.001f)
+		return false;
+
+	// Calculate the normal for the second edge.
+	edgeNormal.x = (intersectEdgeB.y * norm.z) - (intersectEdgeB.z * norm.y);
+	edgeNormal.y = (intersectEdgeB.z * norm.x) - (intersectEdgeB.x * norm.z);
+	edgeNormal.z = (intersectEdgeB.x * norm.y) - (intersectEdgeB.y * norm.x);
+
+	// Calculate the determinant to see if it is on the inside, outside, or directly on the edge.
+	vecTmp.x = vecIntersect.x - vecB.x;
+	vecTmp.y = vecIntersect.y - vecB.y;
+	vecTmp.z = vecIntersect.z - vecB.z;
+
+	determinant = ((edgeNormal.x * vecTmp.x) + (edgeNormal.y * vecTmp.y) + (edgeNormal.z * vecTmp.z));
+
+	// Check if it is outside.
+	if(determinant > 0.001f)
+	{
+		return false;
+	}
+
+	// Calculate the normal for the third edge.
+	edgeNormal.x = (intersectEdgeC.y * norm.z) - (intersectEdgeC.z * norm.y);
+	edgeNormal.y = (intersectEdgeC.z * norm.x) - (intersectEdgeC.x * norm.z);
+	edgeNormal.z = (intersectEdgeC.x * norm.y) - (intersectEdgeC.y * norm.x);
+
+	// Calculate the determinant to see if it is on the inside, outside, or directly on the edge.
+	vecTmp.x = vecIntersect.x - vecC.x;
+	vecTmp.y = vecIntersect.y - vecC.y;
+	vecTmp.z = vecIntersect.z - vecC.z;
+
+	determinant = ((edgeNormal.x * vecTmp.x) + (edgeNormal.y * vecTmp.y) + (edgeNormal.z * vecTmp.z));
+
+	// Check if it is outside.
+	if(determinant > 0.001f)
+	{
+		return false;
+	}
+
+	// Now we have our height.
+	heightOut = vecIntersect.y;
+
+	return true;
 }
 
 /*
@@ -472,7 +728,7 @@ bool ASQuadTree::IsTriangleInQuad(int index, float posX, float posZ, float width
 	if(minX > (posX + radius))
 		return false;
 	float maxX = __max(x1, __max(x2, x3));
-	if(maxX > (posX - radius))
+	if(maxX < (posX - radius))
 		return false;
 	float minZ = __min(z1, __min(z2, z3));
 	if(minZ > (posZ + radius))
@@ -503,10 +759,19 @@ void ASQuadTree::Release()
 	}
 }
 
+/*
+******************************************************************
+* METHOD: Release Node
+******************************************************************
+* To release a node, all of its children must be disposed of, therefore
+* this method recursively deletes all child nodes before deleting itself
+*/
+
+
 void ASQuadTree::ReleaseNode(ASNode* node)
 {
 	// Recursively dispose of nodes in this tree
-	for(int i = 0; i < 4; i++)
+	for(int i = 0; i < NODE_CHILDREN; i++)
 	{
 		// Release base nodes first
 		if(node->nodes[i] != 0)
@@ -524,8 +789,14 @@ void ASQuadTree::ReleaseNode(ASNode* node)
 			node->iBuffer->Release();
 			node->iBuffer = 0;
 		}
+		// release the nodes vertice array
+		if(node->vertices)
+		{
+			delete [] node->vertices;
+			node->vertices = 0;
+		}
 		// Release child nodes once we know there are no more levels of recursoion
-		for(int j = 0; j < 4; j++)
+		for(int j = 0; j < NODE_CHILDREN; j++)
 		{
 			delete node->nodes[i];
 			node->nodes[i] = 0;

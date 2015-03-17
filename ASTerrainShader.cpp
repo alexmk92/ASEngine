@@ -70,19 +70,6 @@ bool ASTerrainShader::Init(ID3D11Device* device, HWND handle)
 
 /*
 ******************************************************************
-* METHOD: Release
-******************************************************************
-* Calls the private implementation of the ReleaseShader() method
-*/
-
-void ASTerrainShader::Release() 
-{
-	ReleaseShader();
-	return;
-}
-
-/*
-******************************************************************
 * METHOD: Init Shader
 ******************************************************************
 * Loads the shader files and passes them to the GPU. This also defines
@@ -392,13 +379,12 @@ void ASTerrainShader::RenderShader(ID3D11DeviceContext* deviceContext, int numIn
 
 /*
 ******************************************************************
-* METHOD: Release Shader
+* METHOD: Release
 ******************************************************************
-* Disposes of any resources used by the shader and then sets a null
-* pointer to each of the member variables so we can't access it
+* Calls the private implementation of the ReleaseShader() method
 */
 
-void ASTerrainShader::ReleaseShader()
+void ASTerrainShader::Release() 
 {
 	// Destroy the sampler
 	if(m_sampleState)

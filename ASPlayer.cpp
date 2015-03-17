@@ -27,7 +27,7 @@ ASPlayer::ASPlayer()
 	m_rotZ = 0.0f;
 
 	m_jumpHeight  = 0.f;
-	m_runSpeed    = 0.f;
+	m_runSpeed    = 15.0f;
 	m_lTurnSpeed  = 0.f;
 	m_rTurnSpeed  = 0.f;
 	m_climbSpeed  = 0.f;

@@ -21,10 +21,7 @@ ASTerrain::ASTerrain()
 {
 	m_height      = 0;
 	m_width       = 0;
-	m_numIndices  = 0;
 	m_numVertices = 0;
-	m_iBuffer     = 0;
-	m_vBuffer     = 0;
 	m_heightMap   = 0;
 	m_texture     = 0;
 	m_vertices    = 0;

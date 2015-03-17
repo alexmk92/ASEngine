@@ -55,7 +55,6 @@ public:
 private:
 	// Private methods
 	bool InitShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);
-	void ReleaseShader();
 	void RaiseShaderError(ID3D10Blob*, HWND, WCHAR*);
 };
 

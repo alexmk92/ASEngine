@@ -91,7 +91,7 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	if(!m_Camera)
 		return false;
 
-	m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
+	m_Camera->SetPosition(0.0f, 0.0f, -1.0f);
 	m_Camera->RenderCameraView();
 	m_Camera->GetViewMatrix(viewMatrix);
 
@@ -240,17 +240,25 @@ bool ASGraphics::RenderScene()
 	int numEnemies = 0;
 	int renderCount = 0;
 
+	float camHeight = 0;
 	float posX = 0;
 	float posY = 0;
 	float posZ = 0;
 	float radius = 0;
 	D3DXVECTOR4 color;
+	D3DXVECTOR3 camPos;
 
 	// WVP Matrices
 	D3DXMATRIX world;
 	D3DXMATRIX view;
 	D3DXMATRIX projection;
 	D3DXMATRIX ortho;
+
+	// Get the cameras current pos then get set the cameras new position based on the height of the
+	// triangle that is directly underneath
+	camPos = m_Camera->GetPosition();
+	if(m_quadTree->GetTerrainHeightAtPosition(camPos.x, camPos.z, camHeight))
+		m_Camera->SetPosition(camPos.x, camHeight + 2.0f, camPos.z);
 
 	// Clear the buffers and generate the view matrix for the cameras position
 	m_D3D->PrepareBuffers(0.0f, 0.0f, 0.0f, 1.0f);
