@@ -1,7 +1,7 @@
 
 /*
 ******************************************************************
-* ASTerrain.vs
+* ASSkyBox.vs
 ******************************************************************
 * Vertex shader to map each tex coord to the object
 *
@@ -21,15 +21,12 @@ cbuffer ContstantBuffer
 struct Vertex
 {
 	float4 position : POSITION;
-	float2 texCoord : TEXCOORD0;
-	float3 normal   : NORMAL;
 };
 
 struct Pixel
 {
 	float4 position : SV_POSITION;
-	float2 texCoord : TEXCOORD0;
-	float3 normal   : NORMAL;
+	float4 domePos  : TEXCOORD0;
 };
 
 /*
@@ -40,9 +37,9 @@ struct Pixel
 * @return PixelInputType - The output pixel to be sent to shader
 */
 
-Pixel TerrainVertexShader(Vertex inputVertex) 
+Pixel ASSkyVertexShader(Vertex inputVertex) 
 {
-	PixelInputType outputPixel;
+	Pixel outputPixel;
 
 	// Modify the vertex
 	inputVertex.position.w = 1.0f;
@@ -52,14 +49,8 @@ Pixel TerrainVertexShader(Vertex inputVertex)
 	outputPixel.position = mul(outputPixel.position, view);
 	outputPixel.position = mul(outputPixel.position, projection);
 
-	// Set the texture coordinates
-	outputPixel.texCoord = inputVertex.texCoord;
-
-	// Calculate the VN of the vertex against the world matrix (to get global lighting)
-	outputPixel.normal = mul(inputVertex.normal, (float3x3)world);
-
-	// Normalise the vector before returning it 
-	outputPixel.normal = normalize(outputPixel.normal);
+	// Send the input position to the pixel shader
+	outputPixel.domePos = inputVertex.position;
 
 	return outputPixel;
 }

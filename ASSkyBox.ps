@@ -1,0 +1,54 @@
+
+/*
+******************************************************************
+* ASSkyBox.ps
+******************************************************************
+* Pixel shader to map each pixel to the polygons that are to
+* be rendered to the screen.  
+*
+* The pixel shader recieves its input from the output of the
+* vertex shader
+******************************************************************
+*/
+
+// This buffer described lighting on a pixel 
+// @member float4 - base color
+// @member float4 - highlight color
+//
+// @note : memory allocated in 4byte chunks, failure to do so will effect the mapping
+cbuffer Gradient 
+{
+	float4 skyColorA;
+	float4 skyColorB;
+};
+
+// TYPE DEFS
+struct Pixel
+{
+	float4 position : SV_POSITION;	// The position of the pixel rel to the world
+	float4 domePos  : TEXCOORD0;
+};
+
+/*
+******************************************************************
+* PIXEL SHADER
+******************************************************************
+* @return float4 - The final color of the pixel at this location
+*/
+
+float4 ASSkyPixelShader(Pixel inputPixel) : SV_TARGET
+{
+	float height;	// the height of the skybox (2.0f radius, -1.0f and +1.0f around the world)
+	float4 color;
+
+	height = inputPixel.domePos.y;
+
+	if(height < 0.0f)
+		height = 0.0f;
+
+	// Interpolate the colors to get a random gradient texture color to map to the tex
+	color = lerp(skyColorB, skyColorA, height);
+
+	return color;
+}
+

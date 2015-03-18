@@ -664,9 +664,7 @@ bool ASQuadTree::GetTriangleHeightAtPosition(float x, float z, float& heightOut,
 
 	// Check if it is outside.
 	if(determinant > 0.001f)
-	{
 		return false;
-	}
 
 	// Calculate the normal for the third edge.
 	edgeNormal.x = (intersectEdgeC.y * norm.z) - (intersectEdgeC.z * norm.y);
@@ -682,9 +680,7 @@ bool ASQuadTree::GetTriangleHeightAtPosition(float x, float z, float& heightOut,
 
 	// Check if it is outside.
 	if(determinant > 0.001f)
-	{
 		return false;
-	}
 
 	// Now we have our height.
 	heightOut = vecIntersect.y;

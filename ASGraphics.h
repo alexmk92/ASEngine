@@ -32,6 +32,8 @@
 #include "ASPlayer.h"
 #include "ASColorShader.h"
 #include "ASQuadTree.h"
+#include "ASSkyShader.h"
+#include "ASSkyBox.h"
 
 /*
 *******************************************************************
@@ -61,12 +63,8 @@ public:
 	// Struct to hold camera info
 	struct ASCameraInfo
 	{
-		float posX;
-		float posY;
-		float posZ;
-		float rotX;
-		float rotY;
-		float rotZ;
+		D3DXVECTOR3 pos;
+		D3DXVECTOR3 rot;
 	};
 	// Constructors and Destructors
 	ASGraphics();
@@ -75,8 +73,7 @@ public:
 
 	// Public methods
 	bool Init(int, int, HWND);
-	bool UpdateFrame(ASCameraInfo);
-	bool RenderScene();
+	bool RenderScene(ASCameraInfo);
 	void Release();
 
 private:
@@ -94,6 +91,8 @@ private:
 	ASTerrain*       m_WorldTerrain;
 	ASPlayer*        m_player;
 	ASQuadTree*      m_quadTree;
+	ASSkyBox*        m_skyBox;
+	ASSkyShader*     m_skyShader;
 };
 
 #endif

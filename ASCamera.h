@@ -46,18 +46,13 @@ public:
 
 	// Write the View matrix to a given D3DXMATRIX object
 	void GetViewMatrix(D3DXMATRIX&);
+	void GetWorldMatrix(D3DXMATRIX&);
 
 private:
 	// X, Y, Z Positions of the projection matrix
-	float m_posX;
-	float m_posY;
-	float m_posZ;
-
+	D3DXVECTOR3 m_pos;
 	// X, Y, Z Positions of the rotation matrix
-	float m_rotX;
-	float m_rotY;
-	float m_rotZ;
-
+	D3DXVECTOR3 m_rot;
 	//  Matrix to describe what we are looking at (the eye of the camera)
 	D3DXMATRIX m_cameraView;
 };

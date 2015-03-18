@@ -94,6 +94,8 @@
     <ClCompile Include="ASModel.cpp" />
     <ClCompile Include="ASPlayer.cpp" />
     <ClCompile Include="ASQuadTree.cpp" />
+    <ClCompile Include="ASSkyBox.cpp" />
+    <ClCompile Include="ASSkyShader.cpp" />
     <ClCompile Include="ASSound.cpp" />
     <ClCompile Include="ASTerrain.cpp" />
     <ClCompile Include="ASTerrainShader.cpp" />
@@ -123,6 +125,8 @@
     <ClInclude Include="ASModel.h" />
     <ClInclude Include="ASPlayer.h" />
     <ClInclude Include="ASQuadTree.h" />
+    <ClInclude Include="ASSkyBox.h" />
+    <ClInclude Include="ASSkyShader.h" />
     <ClInclude Include="ASSound.h" />
     <ClInclude Include="ASTerrain.h" />
     <ClInclude Include="ASTerrainShader.h" />
@@ -137,6 +141,8 @@
     <None Include="ASLight.ps" />
     <None Include="ASLight.vs" />
     <None Include="ASFont.vs" />
+    <None Include="ASSkyBox.ps" />
+    <None Include="ASSkyBox.vs" />
     <None Include="ASTerrain.ps" />
     <None Include="ASTerrain.vs" />
     <None Include="ASTexture.ps" />

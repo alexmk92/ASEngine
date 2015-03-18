@@ -226,7 +226,7 @@ bool ASEngine::DispatchASEvent()
 		return false;
 
 	// Update the scene
-	success = m_graphics->UpdateFrame(m_camInfo);
+	success = m_graphics->RenderScene(m_camInfo);
 	if(!success)
 		return false;
 
@@ -269,11 +269,10 @@ bool ASEngine::ProcessInput(float frameTime)
 
 	isKeyDown = m_input->IsSpaceBarDown();
 	m_player->MoveUpward(isKeyDown);
-	m_player->MoveDownward(false);
 
 	// Set the Camera info data structure
-	m_player->GetPosition(m_camInfo.posX, m_camInfo.posY, m_camInfo.posZ);
-	m_player->GetRotation(m_camInfo.rotX, m_camInfo.rotY, m_camInfo.rotZ);
+	m_player->GetPosition(m_camInfo.pos.x, m_camInfo.pos.y, m_camInfo.pos.z);
+	m_player->GetRotation(m_camInfo.rot.x, m_camInfo.rot.y, m_camInfo.rot.z);
 
 	// Everything was successful
 	return true;

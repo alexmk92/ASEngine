@@ -93,6 +93,12 @@
     <ClCompile Include="ASQuadTree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ASSkyBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ASSkyShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ASEngine.h">
@@ -173,6 +179,12 @@
     <ClInclude Include="ASQuadTree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ASSkyBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ASSkyShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ASLight.vs">
@@ -203,6 +215,12 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="ASTerrain.ps">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASSkyBox.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASSkyBox.ps">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

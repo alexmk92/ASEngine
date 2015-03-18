@@ -33,6 +33,8 @@ ASGraphics::ASGraphics()
 	m_colorShader   = 0;
 	m_terrainShader = 0;
 	m_quadTree      = 0;
+	m_skyShader     = 0;
+	m_skyBox        = 0;
 }
 
 /*
@@ -103,7 +105,7 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	if(!m_WorldTerrain)
 		return false;
 
-	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapB.bmp", L"./textures/dirt01.dds");
+	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapC.bmp", L"./textures/dirt01.dds");
 	if(!success) {
 		MessageBox(hwnd, L"Error when initialising the world terrain in ASGraphics.cpp.", L"Error", MB_OK);
 		return false;
@@ -171,6 +173,29 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 	}
 
+	// Create the new sky box
+	m_skyBox = new ASSkyBox;
+	if(!m_skyBox)
+		return false;
+
+	success = m_skyBox->Init(m_D3D->GetDevice());
+	if(!success)
+	{
+		MessageBox(hwnd, L"Error: Could not initialise the sky box", L"Error", MB_OK);
+		return false;
+	}
+
+	// Create the skybox shader
+	m_skyShader = new ASSkyShader;
+	if(!m_skyShader)
+		return false;
+
+	success = m_skyShader->Init(m_D3D->GetDevice(), hwnd, L"./ASSkyBox.vs", L"./ASSkyBox.ps");
+	if(!success) {
+		MessageBox(hwnd, L"Error: Could not initialise the sky shader, it's likely an invalid file path was passed.", L"Error", MB_OK);
+		return false;
+	}
+
 	/*
 	// Create the text object.
 	m_Text = new ASText;
@@ -191,47 +216,21 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 
 /*
 *******************************************************************
-* Method: UpdateFrame()
+* Method: RenderScene()
 *******************************************************************
-* Updates the frame by calling the RenderScene() method for each
-* frame - if RenderScene returns false then that causes this
+* Updates each frame if RenderScene returns false then that causes this
 * method to return false to the ASEngine, which in turn will
 * terminate the game loop and close the window, safely disposing
 * of all objects.
-*
-* @param ASCameraInfo* - The camera information to update the scene
-*
-* @return bool - True if frame was rendered successfully, else false
-*******************************************************************
-*/
-
-bool ASGraphics::UpdateFrame(ASCameraInfo info)
-{
-	// Set the position of the camera.
-	m_Camera->SetPosition(info.posX, info.posY, info.posZ);
-
-	// Set the rotation of the camera.
-	m_Camera->SetRotation(info.rotX, info.rotY, info.rotZ);
-
-	// Render the new scene
-	RenderScene();
-
-	return true;
-}
-
-/*
-*******************************************************************
-* Method: RenderScene()
-*******************************************************************
 * Renders the scene, using the local ASDirect3D delegate object
 * 
-* @param rotation - tells us what direction the camera is pointing in
+* @param ASCameraInfo - the current camera infomation
 *
 * @return bool - True if the scene rendered successfully, else false
 *******************************************************************
 */
 
-bool ASGraphics::RenderScene()
+bool ASGraphics::RenderScene(ASCameraInfo info)
 {
 	bool success	 = false;
 	bool renderModel = false;
@@ -241,41 +240,67 @@ bool ASGraphics::RenderScene()
 	int renderCount = 0;
 
 	float camHeight = 0;
-	float posX = 0;
-	float posY = 0;
-	float posZ = 0;
-	float radius = 0;
 	D3DXVECTOR4 color;
 	D3DXVECTOR3 camPos;
+	D3DXVECTOR3 camRot;
 
 	// WVP Matrices
 	D3DXMATRIX world;
 	D3DXMATRIX view;
 	D3DXMATRIX projection;
 	D3DXMATRIX ortho;
+	D3DXMATRIX camWorld;
+
+	// Retrieve the WVP matrices from the camera to perform any translations
+	m_D3D->GetWorldMatrix(world);
+	m_Camera->GetViewMatrix(view);
+	m_D3D->GetProjectionMatrix(projection);
+	m_D3D->GetInterfaceMatrix(ortho);
+	m_Camera->GetWorldMatrix(camWorld);
+
+	// Clear the back buffer and prepare to draw the scene
+	m_D3D->PrepareBuffers(0.0f, 0.0f, 0.0f, 1.0f);
+
+	// Set the new position of the camera, then return the new set values into local vars
+	m_Camera->SetPosition(info.pos.x, info.pos.y, info.pos.z);
+	m_Camera->SetRotation(info.rot.x, info.rot.y, info.rot.z);
+	camPos = m_Camera->GetPosition();
+	camRot = m_Camera->GetRotation();
 
 	// Get the cameras current pos then get set the cameras new position based on the height of the
 	// triangle that is directly underneath
-	camPos = m_Camera->GetPosition();
 	if(m_quadTree->GetTerrainHeightAtPosition(camPos.x, camPos.z, camHeight))
-		m_Camera->SetPosition(camPos.x, camHeight + 2.0f, camPos.z);
+											  m_Camera->SetPosition(camPos.x, camHeight + 2.5f, camPos.z);
+
+	// Prepare the sky (this should be drawn first as backface culling must be disabled to ensure
+	// that the sky is not culled (excluded) from the view.)
+	// Create a translation matrix to move the sky relative to the viewer
+	D3DXMatrixTranslation(&world, info.pos.x, info.pos.y + camHeight + 0.25, info.pos.z);
+
+	m_D3D->DisableCulling();
+	m_D3D->DisableZBuffer();
+
+	m_skyBox->Render(m_D3D->GetDeviceContext());
+	m_skyShader->RenderSky(m_D3D->GetDeviceContext(), m_skyBox->GetNumIndices(), world, view, projection, m_skyBox->GetColorA(), m_skyBox->GetColorB());
+
+	m_D3D->EnableZBuffer();
+	m_D3D->EnableCulling();
+
+	// Reset the world matrix for the rest of the components
+	m_D3D->GetWorldMatrix(world);
 
 	// Clear the buffers and generate the view matrix for the cameras position
-	m_D3D->PrepareBuffers(0.0f, 0.0f, 0.0f, 1.0f);
 	m_Camera->RenderCameraView();
-
-	// Retrieve the WVP matrices from the camera
-	m_Camera->GetViewMatrix(view);
-	m_D3D->GetWorldMatrix(world);
-	m_D3D->GetProjectionMatrix(projection);
-	m_D3D->GetInterfaceMatrix(ortho);
 
 	// build the frustum
 	m_Frustum->ConstructFrustrum(SCREEN_DEPTH, projection, view);
 
+
 	// Build the terrain
 	success = m_terrainShader->SetShaderParameters(m_D3D->GetDeviceContext(), world, view, projection, m_light->GetAmbientColor(), 
 												   m_light->GetDiffuseColor(), m_light->GetLightDirection(), m_WorldTerrain->GetTexture());
+
+
 	if(!success)
 		return false;
 
@@ -381,6 +406,20 @@ void ASGraphics::Release()
 		m_quadTree->Release();
 		delete m_quadTree;
 		m_quadTree = 0;
+	}
+	// Release the sky shader
+	if(m_skyShader)
+	{
+		m_skyShader->Release();
+		delete m_skyShader;
+		m_skyShader = 0;
+	}
+	// Release the sky box
+	if(m_skyBox)
+	{
+		m_skyBox->Release();
+		delete m_skyBox;
+		m_skyBox = 0;
 	}
 
 	return;

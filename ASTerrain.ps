@@ -30,7 +30,7 @@ cbuffer LightBuffer
 };
 
 // TYPE DEFS
-struct PixelInputType
+struct Pixel
 {
 	float4 position : SV_POSITION;	// The position of the pixel rel to the world
 	float2 texCoord : TEXCOORD0;
@@ -44,7 +44,7 @@ struct PixelInputType
 * @return float4 - The final color of the pixel at this location
 */
 
-float4 TerrainPixelShader(PixelInputType inputPixel) : SV_TARGET
+float4 TerrainPixelShader(Pixel inputPixel) : SV_TARGET
 {
 	// local vars
 	float4 texColor;		// color of the texture, sampled from the given texture at the current pixel

@@ -68,10 +68,12 @@ public:
 	ID3D11Device*		 GetDevice();
 	ID3D11DeviceContext* GetDeviceContext();
 
-	void TurnOnZBuffer();
-	void TurnOffZBuffer();
-	void TurnOnAlphaBlending();
-	void TurnOffAlphaBlending();
+	void DisableZBuffer();			// Needed for drawing orthographic items to the scene (interface components)
+	void EnableZBuffer();
+	void DisableAlphaBlending();
+	void EnableAlphaBlending();
+	void DisableCulling();			// Used for drawing the sky, it requires back culling to be off
+	void EnableCulling();			// so we can view items in skybox, else we would see nothing
 
 private:
 	// Member variables
@@ -86,7 +88,8 @@ private:
 	ID3D11Texture2D*		 m_depthStencilBuffer;
 	ID3D11DepthStencilState* m_depthStencilState;
 	ID3D11DepthStencilView*  m_depthStencilView;
-	ID3D11RasterizerState*   m_rasterState;
+	ID3D11RasterizerState*   m_cullingEnabledState;
+	ID3D11RasterizerState*   m_cullingDisabledState;
 
 	D3DXMATRIX				 m_projectionMatrix;
 	D3DXMATRIX				 m_worldMatrix;

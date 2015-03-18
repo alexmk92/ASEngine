@@ -20,13 +20,8 @@
 
 ASCamera::ASCamera() 
 {
-	m_posX = 0.0f;
-	m_posY = 0.0f;
-	m_posZ = 0.0f;
-	
-	m_rotX = 0.0f;
-	m_rotY = 0.0f;
-	m_rotZ = 0.0f;
+	m_pos = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_rot = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
 }
 
 /*
@@ -61,9 +56,9 @@ ASCamera::~ASCamera()
 
 void ASCamera::SetPosition(float x, float y, float z)
 {
-	m_posX = x;
-	m_posY = y;
-	m_posZ = z;
+	m_pos.x = x;
+	m_pos.y = y;
+	m_pos.z = z;
 }
 
 /*
@@ -78,9 +73,9 @@ void ASCamera::SetPosition(float x, float y, float z)
 
 void ASCamera::SetRotation(float x, float y, float z)
 {
-	m_rotX = x;
-	m_rotY = y;
-	m_rotZ = z;
+	m_rot.x = x;
+	m_rot.y = y;
+	m_rot.z = z;
 }
 
 /*
@@ -95,7 +90,7 @@ void ASCamera::SetRotation(float x, float y, float z)
 
 D3DXVECTOR3 ASCamera::GetPosition()
 {
-	return D3DXVECTOR3(m_posX, m_posY, m_posZ);
+	return m_pos;
 }
 
 /*
@@ -110,7 +105,7 @@ D3DXVECTOR3 ASCamera::GetPosition()
 
 D3DXVECTOR3 ASCamera::GetRotation()
 {
-	return D3DXVECTOR3(m_rotX, m_rotY, m_rotZ);
+	return m_rot;
 }
 
 /*
@@ -132,19 +127,19 @@ void ASCamera::RenderCameraView()
 								 0.0f);
 
 	// Set the cameras position relative to the world
-	D3DXVECTOR3 pos = D3DXVECTOR3(m_posX, 
-								  m_posY, 
-								  m_posZ);
+	D3DXVECTOR3 pos = D3DXVECTOR3(m_pos.x, 
+								  m_pos.y, 
+								  m_pos.z);
 
 	// Set the direction the camera is looking at
 	D3DXVECTOR3 eye = D3DXVECTOR3(0.0f,
 								  0.0f, 
 								  1.0f);
 
-	// Set rotation of the camera on its axis
-	float pitch = m_rotX * 0.0174532925f; // X Axis Rotation
-	float yaw   = m_rotY * 0.0174532925f; // Y Axis Rotation
-	float roll  = m_rotZ * 0.0174532925f; // Z Axis Rotation
+	// Set rotation of the camera on its axis in radians
+	float pitch = m_rot.x * 0.0174532925f; // X Axis Rotation
+	float yaw   = m_rot.y * 0.0174532925f; // Y Axis Rotation
+	float roll  = m_rot.z * 0.0174532925f; // Z Axis Rotation
 
 	// Set the yaw pitch and roll rotations for the camera, and write it to the output
 	// matrix (cameraRot)
@@ -178,3 +173,36 @@ void ASCamera::GetViewMatrix(D3DXMATRIX& view)
 	return;
 }
 
+void ASCamera::GetWorldMatrix(D3DXMATRIX& camWorld)
+{
+	D3DXMATRIX cameraRot;
+	D3DXMATRIX cameraTrans;
+
+	// Set the "up" vector to point upward
+	D3DXVECTOR3 up = D3DXVECTOR3(0.0f, 
+								 1.0f, 
+								 0.0f);
+
+	// Set the cameras position relative to the world
+	D3DXVECTOR3 pos = D3DXVECTOR3(m_pos.x, 
+								  m_pos.y, 
+								  m_pos.z);
+
+	// Set the direction the camera is looking at
+	D3DXVECTOR3 eye = D3DXVECTOR3(0.0f,
+								  0.0f, 
+								  1.0f);
+
+	// Set rotation of the camera on its axis in radians
+	float pitch = m_rot.x * 0.0174532925f; // X Axis Rotation
+	float yaw   = m_rot.y * 0.0174532925f; // Y Axis Rotation
+	float roll  = m_rot.z * 0.0174532925f; // Z Axis Rotation
+
+	// Set the yaw pitch and roll rotations for the camera, and write it to the output
+	// matrix (cameraRot)
+	D3DXMatrixRotationYawPitchRoll(&cameraRot, yaw, pitch, roll); 
+	D3DXMatrixTranslation(&cameraTrans, m_pos.x, m_pos.y, m_pos.z);
+
+	camWorld = cameraRot * cameraTrans;
+
+}

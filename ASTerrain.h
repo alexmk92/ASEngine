@@ -89,6 +89,6 @@ private:
 };
 
 // controls the size of the sample for the texture
-const int TEXTURE_TILE_SIZE = 4;
+const int TEXTURE_TILE_SIZE = 8;
 
 #endif

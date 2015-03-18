@@ -29,7 +29,8 @@ ASDirect3D::ASDirect3D()
 	m_depthStencilBuffer = 0;
 	m_depthStencilState  = 0;
 	m_depthStencilView   = 0;
-	m_rasterState		 = 0;
+	m_cullingEnabledState = 0;
+	m_cullingDisabledState  = 0;
 	m_alphaDisableBlendState = 0;
 	m_alphaEnableBlendState = 0;
 	m_depthStencilDisabledState = 0;
@@ -387,11 +388,40 @@ bool ASDirect3D::Init(int width, int height, float depth, float nearPlane, bool 
 	rasterDesc.SlopeScaledDepthBias = 0.0f;
 
 	// Create the rasteriser on the device
-	hr = m_device->CreateRasterizerState(&rasterDesc, &m_rasterState);
+	hr = m_device->CreateRasterizerState(&rasterDesc, &m_cullingEnabledState);
 	if(FAILED(hr))
 		return false;
 	else 
-		m_deviceContext->RSSetState(m_rasterState);
+		m_deviceContext->RSSetState(m_cullingEnabledState);
+
+	/*
+	***********************************************************
+	* EXTRA RASTERISER
+	***********************************************************
+	* This second rasteriser is used to toggle between enabling
+	* and disabling culling, this should be used when drawing
+	* items like the Skybox that require culling to be disbaled
+	* as they are drawn because otherwise the sky will be hidden
+	* if it is outside the current cull context - this will be
+	* the default state for the rasterizer as the Skybox should
+	* be drawn before anything else in the scene
+	*/ 
+
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_NONE;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+
+	// Load this new rasterizer state into the "culling toggle state"
+	hr = m_device->CreateRasterizerState(&rasterDesc, &m_cullingDisabledState);
+	if(FAILED(hr))
+		return false;
 
 	/*
 	***********************************************************
@@ -657,11 +687,33 @@ void ASDirect3D::GetVideoCardInfo(char* name, int& memory)
 
 /*
 *******************************************************************
+* Method: Enable back face culling
+*******************************************************************
+*/
+
+void ASDirect3D::EnableCulling()
+{
+	m_deviceContext->RSSetState(m_cullingEnabledState);
+}
+
+/*
+*******************************************************************
+* Method: Disable all culling
+*******************************************************************
+*/
+
+void ASDirect3D::DisableCulling()
+{
+	m_deviceContext->RSSetState(m_cullingDisabledState);
+}
+
+/*
+*******************************************************************
 * Method: Enable alpha blending
 *******************************************************************
 */
 
-void ASDirect3D::TurnOnAlphaBlending()
+void ASDirect3D::DisableAlphaBlending()
 {
 	float blendFactor[4];
 	
@@ -684,7 +736,7 @@ void ASDirect3D::TurnOnAlphaBlending()
 *******************************************************************
 */
 
-void ASDirect3D::TurnOffAlphaBlending()
+void ASDirect3D::EnableAlphaBlending()
 {
 	float blendFactor[4];
 	
@@ -707,7 +759,7 @@ void ASDirect3D::TurnOffAlphaBlending()
 *******************************************************************
 */
 
-void ASDirect3D::TurnOnZBuffer()
+void ASDirect3D::EnableZBuffer()
 {
 	m_deviceContext->OMSetDepthStencilState(m_depthStencilState, 1);
 	return;
@@ -719,7 +771,7 @@ void ASDirect3D::TurnOnZBuffer()
 *******************************************************************
 */
 
-void ASDirect3D::TurnOffZBuffer()
+void ASDirect3D::DisableZBuffer()
 {
 	m_deviceContext->OMSetDepthStencilState(m_depthStencilDisabledState, 1);
 	return;
@@ -741,11 +793,17 @@ void ASDirect3D::Release()
 	// Set to windowed mode, otherwise exiting the swapchain will throw an error
 	if(m_swapChain)
 		m_swapChain->SetFullscreenState(false, NULL);
-	// Destroy Rasteriser
-	if(m_rasterState)
+	// Destroy culling disabled rasterizer state
+	if(m_cullingDisabledState)
 	{
-		m_rasterState->Release();
-		m_rasterState = 0;
+		m_cullingDisabledState->Release();
+		m_cullingDisabledState = 0;
+	}
+	// Destroy the culling enabled state
+	if(m_cullingEnabledState)
+	{
+		m_cullingEnabledState->Release();
+		m_cullingEnabledState = 0;
 	}
 	// Destroy Depth Stencil
 	if(m_depthStencilView)
@@ -807,6 +865,7 @@ void ASDirect3D::Release()
 		m_depthStencilDisabledState->Release();
 		m_depthStencilDisabledState = 0;
 	}
+
 
 	return;
 }
