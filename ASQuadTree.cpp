@@ -219,6 +219,7 @@ void ASQuadTree::AppendNode(ASNode* node, float posX, float posZ, float width, I
 			vertices[currIndex].pos      = m_vertices[vertIndex].pos;
 			vertices[currIndex].texCoord = m_vertices[vertIndex].texCoord;
 			vertices[currIndex].norm     = m_vertices[vertIndex].norm;
+			vertices[currIndex].color    = m_vertices[vertIndex].color;
 			// Set nodes vertice buffer
 			node->vertices[currIndex].x  = m_vertices[vertIndex].pos.x;
 			node->vertices[currIndex].y  = m_vertices[vertIndex].pos.y;
@@ -232,6 +233,7 @@ void ASQuadTree::AppendNode(ASNode* node, float posX, float posZ, float width, I
 			vertices[currIndex].pos      = m_vertices[vertIndex].pos;
 			vertices[currIndex].texCoord = m_vertices[vertIndex].texCoord;
 			vertices[currIndex].norm     = m_vertices[vertIndex].norm;
+			vertices[currIndex].color    = m_vertices[vertIndex].color;
 			// Set nodes vertice buffer
 			node->vertices[currIndex].x  = m_vertices[vertIndex].pos.x;
 			node->vertices[currIndex].y  = m_vertices[vertIndex].pos.y;
@@ -245,6 +247,7 @@ void ASQuadTree::AppendNode(ASNode* node, float posX, float posZ, float width, I
 			vertices[currIndex].pos      = m_vertices[vertIndex].pos;
 			vertices[currIndex].texCoord = m_vertices[vertIndex].texCoord;
 			vertices[currIndex].norm     = m_vertices[vertIndex].norm;
+			vertices[currIndex].color    = m_vertices[vertIndex].color;
 			// Set nodes vertice buffer
 			node->vertices[currIndex].x  = m_vertices[vertIndex].pos.x;
 			node->vertices[currIndex].y  = m_vertices[vertIndex].pos.y;

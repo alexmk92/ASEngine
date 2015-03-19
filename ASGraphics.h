@@ -45,7 +45,7 @@
 const bool  FULL_SCREEN   = false;
 const bool  VSYNC_ENABLED = true;
 const float SCREEN_DEPTH  = 1000.0f;
-const float SCREEN_NEAR   = 0.1f;
+const float SCREEN_NEAR   = 1.25f;
 
 // Spawn coordinates for the player in the world
 const float SPAWN_X = 20.0f;

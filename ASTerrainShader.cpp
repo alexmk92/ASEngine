@@ -94,7 +94,7 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	ID3D10Blob* psBuffer = 0;
 
 	// Other descriptors for buffer
-	D3D11_INPUT_ELEMENT_DESC polyLayout[3];	
+	D3D11_INPUT_ELEMENT_DESC polyLayout[4];	
 
 	D3D11_BUFFER_DESC  cBufferDesc;
 	D3D11_BUFFER_DESC  lightBufferDesc;
@@ -141,6 +141,7 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	// in this case every 12 bytes are position and every 16 bytes after that will be color - this tells the GPU
 	// the structure of the input, so it knows to process vertex information for 12 byes and then color information 
 	// for 16 bytes after... 12 bytes as a triangle has 3 vertices of FLOAT = 3*4 = 12.  16 bytes color = float = rgba = 4*4 = 16
+	// The structure here directly maps that found in the vertex shader , order of declaration matters
 	polyLayout[0].SemanticName  = "POSITION";
 	polyLayout[0].SemanticIndex = 0;
 	polyLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
@@ -152,7 +153,7 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	// Describe the tex coord information, this will be loaded into the input layout var
 	polyLayout[1].SemanticName = "TEXCOORD";
 	polyLayout[1].SemanticIndex = 0;
-	polyLayout[1].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	polyLayout[1].Format = DXGI_FORMAT_R32G32_FLOAT;
 	polyLayout[1].InputSlot = 0;
 	polyLayout[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	polyLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
@@ -166,6 +167,15 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	polyLayout[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	polyLayout[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	polyLayout[2].InstanceDataStepRate = 0;
+
+	// Set the color vertex information
+	polyLayout[3].SemanticName = "COLOR";
+	polyLayout[3].SemanticIndex = 0;
+	polyLayout[3].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	polyLayout[3].InputSlot = 0;
+	polyLayout[3].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+	polyLayout[3].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	polyLayout[3].InstanceDataStepRate = 0;
 
 	// Create the input layout ont he device using our rendering device.
 	numElements = sizeof(polyLayout) / sizeof(polyLayout[0]);

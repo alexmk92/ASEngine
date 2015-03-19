@@ -11,6 +11,9 @@
 ******************************************************************
 */
 
+// Color map texture
+//Texture2D colorMap  : register(t0);
+
 // Textures for different areas of the heightmap
 Texture2D foliage   : register(t0);
 Texture2D rockFace  : register(t1);
@@ -39,6 +42,7 @@ struct ASPixel
 	float4 position : SV_POSITION;	// The position of the pixel rel to the world
 	float2 texCoord : TEXCOORD0;
 	float3 normal   : NORMAL;		// Vertex normal to calculate lighting
+	float4 color    : COLOR;
 };
 
 /*
@@ -103,16 +107,16 @@ float4 TerrainPixelShader(ASPixel inputPixel) : SV_TARGET
 	color = ambientColor;
 
 	lightDir = -lightDirection;
-	lightIntensity = saturate(dot(inputPixel.normal, lightDir));
 
+	// Set the color based on the intensity of the light
+	lightIntensity = saturate(dot(inputPixel.normal, lightDir));
 	if(lightIntensity > 0.0f)
-	{
 		color += (diffuseColor * lightIntensity);
-	}
 
 	// Saturate the color to get the final value
 	color = saturate(color);
 	color = color * texColor;
+	color = saturate(color * inputPixel.color * 2.0f);
 
 	return color;
 }

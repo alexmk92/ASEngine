@@ -23,6 +23,7 @@ struct ASVertex
 	float4 position : POSITION;
 	float2 texCoord : TEXCOORD0;
 	float3 normal   : NORMAL;
+	float4 color    : COLOR;
 };
 
 struct ASPixel
@@ -30,6 +31,9 @@ struct ASPixel
 	float4 position : SV_POSITION;
 	float2 texCoord : TEXCOORD0;
 	float3 normal   : NORMAL;
+	float4 color    : COLOR;
+	float4 depthPos : TEXCOORD1;    // Checks the current depth from camera to determine if a depth 
+									// detail texture should be mapped to the pixel
 };
 
 /*
@@ -60,6 +64,12 @@ ASPixel TerrainVertexShader(ASVertex inputVertex)
 
 	// Normalise the vector before returning it 
 	outputPixel.normal = normalize(outputPixel.normal);
+
+	// Set the pixels color map to the input vertex pixel (sent from ASTerrain.cpp)
+	outputPixel.color    = inputVertex.color;
+
+	// Set the output pixels depth to the current position 
+	outputPixel.depthPos = outputPixel.position;
 
 	return outputPixel;
 }

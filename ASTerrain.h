@@ -40,6 +40,7 @@ private:
 		D3DXVECTOR3 pos;
 		D3DXVECTOR2 texCoord;
 		D3DXVECTOR3 normal;
+		D3DXVECTOR4 color;
 	};
 	// Struct to hold information on the heightmap
 	struct ASHeightMap
@@ -47,6 +48,7 @@ private:
 		D3DXVECTOR3 pos;
 		D3DXVECTOR2 texCoord;
 		D3DXVECTOR3 normals;
+		D3DXVECTOR3 color;
 	};
 	// Vector to calculate lighting between angles
 	struct ASLightVector
@@ -60,7 +62,7 @@ public:
 	~ASTerrain();
 
 	// Public methods
-	bool Init(ID3D11Device*, char*, vector<WCHAR*>);
+	bool Init(ID3D11Device*, char*, char*, vector<WCHAR*>);
 	void Release();
 
 	void GetVerticeArray(void*);	
@@ -78,7 +80,7 @@ private:
 	bool LoadTexture(ID3D11Device*, vector<WCHAR*>);
 
 	// Height map handling code
-	bool LoadHeightMap(char*);
+	bool LoadMap(char*, bool);
 	void NormaliseHeightMap();
 	bool CalculateMapNormals();
 

@@ -45,6 +45,7 @@ private:
 		D3DXVECTOR3 pos;
 		D3DXVECTOR2 texCoord;
 		D3DXVECTOR3 norm;
+		D3DXVECTOR4 color;
 	};
 	// Holds x,y,z coordinates
 	struct ASVector
