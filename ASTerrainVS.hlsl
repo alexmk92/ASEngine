@@ -21,7 +21,7 @@ cbuffer ContstantBuffer
 struct ASVertex
 {
 	float4 position : POSITION;
-	float2 texCoord : TEXCOORD0;
+	float4 texCoord : TEXCOORD0;
 	float3 normal   : NORMAL;
 	float4 color    : COLOR;
 };
@@ -29,7 +29,7 @@ struct ASVertex
 struct ASPixel
 {
 	float4 position : SV_POSITION;
-	float2 texCoord : TEXCOORD0;
+	float4 texCoord : TEXCOORD0;
 	float3 normal   : NORMAL;
 	float4 color    : COLOR;
 	float4 depthPos : TEXCOORD1;    // Checks the current depth from camera to determine if a depth 

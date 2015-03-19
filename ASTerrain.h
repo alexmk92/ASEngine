@@ -38,7 +38,7 @@ private:
 	struct ASVertex
 	{
 		D3DXVECTOR3 pos;
-		D3DXVECTOR2 texCoord;
+		D3DXVECTOR4 texCoord;
 		D3DXVECTOR3 normal;
 		D3DXVECTOR4 color;
 	};
@@ -62,13 +62,13 @@ public:
 	~ASTerrain();
 
 	// Public methods
-	bool Init(ID3D11Device*, char*, char*, vector<WCHAR*>);
+	bool Init(ID3D11Device*, char*, char*, vector<WCHAR*>, WCHAR*);
 	void Release();
 
 	void GetVerticeArray(void*);	
 	int GetNumVertices();
 
-	ID3D11ShaderResourceView*   GetTextureAtIndex(int);
+	ID3D11ShaderResourceView*   GetDetailTexture();
 	void GetTextures(vector<ID3D11ShaderResourceView*>&);
 
 private:
@@ -77,7 +77,9 @@ private:
 
 	// Texturre handlign methods
 	void CalculateTextureCoords();
-	bool LoadTexture(ID3D11Device*, vector<WCHAR*>);
+	bool LoadTextures(ID3D11Device*, vector<WCHAR*>, WCHAR*);
+
+	ID3D11ShaderResourceView*   GetTextureAtIndex(int);
 
 	// Height map handling code
 	bool LoadMap(char*, bool);
@@ -90,6 +92,7 @@ private:
 	int m_numVertices;
 
 	ASVertex*           m_vertices;
+	ASTexture*          m_detailTex;
 	vector<ASTexture>*  m_textures;
 	ASHeightMap*        m_heightMap;
 };

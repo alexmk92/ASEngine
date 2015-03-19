@@ -151,9 +151,11 @@ bool ASTerrainShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 	polyLayout[0].InstanceDataStepRate = 0;
 
 	// Describe the tex coord information, this will be loaded into the input layout var
+	// Instead of passing a 2Byte format, pass 4Byte to account for detail textures coordinates
+	// as the detail coords should not be mapped on the same coord space (bad for pixel rendering)
 	polyLayout[1].SemanticName = "TEXCOORD";
 	polyLayout[1].SemanticIndex = 0;
-	polyLayout[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+	polyLayout[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	polyLayout[1].InputSlot = 0;
 	polyLayout[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	polyLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
@@ -287,13 +289,14 @@ void ASTerrainShader::RaiseShaderError(ID3D10Blob* msg, HWND handle, WCHAR* shad
 * @param D3DXVECTOR4 - the ambient color of the light
 * @param D3DXVECTOR4 - the diffuse color of the light
 * @param D3DXVECTOR3 - The vector holding direction of light
-* @param ID3D11ShaderResourceView* - Pointer to the texture 
+* @param ID3D11ShaderResourceView* - Pointer to the depth texture
+* @param ID3D11ShaderResourceView*[] - Pointer to the texture array
 *
 * @return bool - True if the shader was set, else false
 */
 
 bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX world, D3DXMATRIX view, D3DXMATRIX projection, 
-										  D3DXVECTOR4 ambient, D3DXVECTOR4 diffuse, D3DXVECTOR3 lightDir, 
+										  D3DXVECTOR4 ambient, D3DXVECTOR4 diffuse, D3DXVECTOR3 lightDir, ID3D11ShaderResourceView* depthTex,
 										  vector<ID3D11ShaderResourceView*> textures)
 {
 	HRESULT hr;
@@ -357,9 +360,13 @@ bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 	// at the next stage of the render pipeline
 	deviceContext->PSSetConstantBuffers(0, 1, &m_lBuffer);
 
-	// Loop through each of the textures and set it in the shader
-	for(int i = 0; i < textures.size(); i++)
-		deviceContext->PSSetShaderResources(i, 1, &textures.at(i));
+	// Set the depth texture at index 0
+	deviceContext->PSSetShaderResources(0, 1, &depthTex);
+	// Loop through each of the textures and set it in the shader, start at i=1, size+1 because
+	// the first register in the Pixel shader is set with the detail texture, therefore 
+	// any other registers need to be set on an incremented index
+	for(int i = 1; i < textures.size() + 1; i++)
+		deviceContext->PSSetShaderResources(i, 1, &textures.at(i-1));
 
 	return true;
 }

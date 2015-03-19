@@ -37,13 +37,13 @@ private:
 
 	// Configuration constants
 	static const int NODE_CHILDREN = 4;    // how many children does each node have
-	static const int MAX_TRIANGLES = 10000;	// Determines the number of triangles that can be rendered at one time
+	static const int MAX_TRIANGLES = 15000;	// Determines the number of triangles that can be rendered at one time
 
 	// Requires an ASVertex struct to pass vertex information to shader
 	struct ASVertex 
 	{
 		D3DXVECTOR3 pos;
-		D3DXVECTOR2 texCoord;
+		D3DXVECTOR4 texCoord;
 		D3DXVECTOR3 norm;
 		D3DXVECTOR4 color;
 	};

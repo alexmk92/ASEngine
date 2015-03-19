@@ -11,15 +11,15 @@
 ******************************************************************
 */
 
-// Color map texture
-//Texture2D colorMap  : register(t0);
+// Depth texture, used for close high pixel quality mapping
+Texture2D depthTex  : register(t0);
 
 // Textures for different areas of the heightmap
-Texture2D foliage   : register(t0);
-Texture2D rockFace  : register(t1);
-Texture2D rockFloor : register(t2);
+Texture2D foliage   : register(t1);
+Texture2D rockFace  : register(t2);
+Texture2D rockFloor : register(t3);
 
-SamplerState sampleType;
+SamplerState ASSampler;
 
 // This buffer described lighting on a pixel 
 // @member float3 - The direction the light is hitting the pixel from
@@ -40,9 +40,10 @@ cbuffer LightBuffer
 struct ASPixel
 {
 	float4 position : SV_POSITION;	// The position of the pixel rel to the world
-	float2 texCoord : TEXCOORD0;
+	float4 texCoord : TEXCOORD0;	// Increased buffer for ZW coordinates (used for depthPos mapping)
 	float3 normal   : NORMAL;		// Vertex normal to calculate lighting
-	float4 color    : COLOR;
+	float4 color    : COLOR;		// Color map for the texture
+	float4 depthPos : TEXCOORD1;	// Holds the sampled color coordinate for the depth pixel
 };
 
 /*
@@ -62,16 +63,18 @@ float4 TerrainPixelShader(ASPixel inputPixel) : SV_TARGET
 	float4 color;			// the diffuse color
 	float3 lightDir;		// the direction the light is hitting the surface
 	float  lightIntensity;	// the brightness of the light 0.0f to 1.0f
-	float blend;			// How much should the current pixel sample be blended by with its neighbouring samples (0.0 to 1.0f)
-	float slopeGradient;	// How steep is the current terrain face
+	float  blend;			// How much should the current pixel sample be blended by with its neighbouring samples (0.0 to 1.0f)
+	float  slopeGradient;	// How steep is the current terrain face
+	float  depth;			// The current depth of the viewers position
+	float4 depthColor;		// The color of the depth texture (sampled from depth texture coord)
 
 	/*
 	* Sample the four textures used for height based texture mapping
 	*/
 
-	foliageColor  = foliage.Sample(sampleType, inputPixel.texCoord);
-	rockColor     = rockFloor.Sample(sampleType, inputPixel.texCoord);
-	rockFaceColor = rockFace.Sample(sampleType, inputPixel.texCoord);
+	foliageColor  = foliage.Sample(ASSampler,   inputPixel.texCoord);
+	rockColor     = rockFloor.Sample(ASSampler, inputPixel.texCoord);
+	rockFaceColor = rockFace.Sample(ASSampler,  inputPixel.texCoord);
 
 	// Calculate the height of the slope at this point, this will determine which texture is to be 
 	// mapped to the certain piece of terrain
@@ -101,9 +104,12 @@ float4 TerrainPixelShader(ASPixel inputPixel) : SV_TARGET
 		texColor = rockColor;
 	} 
 
-	// Invert the light direction for the calculations, and then calculate the intensity of light
-	// which is being emitted to the current pixel.  Intensity is the dot product of both the normal vector and 
-	// the light direction vector
+	/*
+	*  Invert the light direction for the calculations, and then calculate the intensity of light
+	*  which is being emitted to the current pixel.  Intensity is the dot product of both the normal vector and 
+	*  the light direction vector
+	*/
+
 	color = ambientColor;
 
 	lightDir = -lightDirection;
@@ -113,7 +119,24 @@ float4 TerrainPixelShader(ASPixel inputPixel) : SV_TARGET
 	if(lightIntensity > 0.0f)
 		color += (diffuseColor * lightIntensity);
 
-	// Saturate the color to get the final value
+	/*
+	* Calculate the value of depth stencil, and then determine whether to map the detail texture to the
+	* current pixel or not
+	*/
+
+	depth = inputPixel.depthPos.z / inputPixel.depthPos.w;
+	if(depth < 10.f)
+	{
+		// Sample the extra two bytes of coord information from the buffer (made this 4Bytes instead of 2Byes
+		// in ASTextureShader.cpp)
+		depthColor = depthTex.Sample(ASSampler, inputPixel.texCoord.zw);
+		texColor = (texColor * depthColor * lightIntensity) * 1.5f;
+	}
+
+	/*
+	*  Produce the output color
+	*/ 
+
 	color = saturate(color);
 	color = color * texColor;
 	color = saturate(color * inputPixel.color * 2.0f);

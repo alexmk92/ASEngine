@@ -53,7 +53,7 @@ public:
 	void Release();
 	void RenderShader(ID3D11DeviceContext*, int);
 	bool SetShaderParameters(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
-							 D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3, 
+							 D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3, ID3D11ShaderResourceView*,
 							 vector<ID3D11ShaderResourceView*>);	// each resource = 1 texture
 private:
 	// Private methods

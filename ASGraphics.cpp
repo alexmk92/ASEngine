@@ -110,7 +110,7 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	textures.push_back(L"./textures/grass.dds");
 	textures.push_back(L"./textures/rock.dds");
 	textures.push_back(L"./textures/slope.dds");
-	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapC.bmp", "./textures/colorMap.bmp", textures);
+	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapC.bmp", "./textures/colorMap.bmp", textures, L"./textures/detail.dds");
 	if(!success) {
 		MessageBox(hwnd, L"Error when initialising the world terrain in ASGraphics.cpp.", L"Error", MB_OK);
 		return false;
@@ -305,9 +305,8 @@ bool ASGraphics::RenderScene(ASCameraInfo info)
 	// Build the terrain
 	vector<ID3D11ShaderResourceView*> res;
 	m_WorldTerrain->GetTextures(res);
-
 	success = m_terrainShader->SetShaderParameters(m_D3D->GetDeviceContext(), world, view, projection, m_light->GetAmbientColor(), 
-												   m_light->GetDiffuseColor(), m_light->GetLightDirection(), res);
+												   m_light->GetDiffuseColor(), m_light->GetLightDirection(), m_WorldTerrain->GetDetailTexture(), res);
 
 	if(!success)
 		return false;
