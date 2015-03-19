@@ -21,6 +21,9 @@
 #include <d3d11.h>
 #include <d3dx10math.h>
 #include "ASTexture.h"
+#include <vector>
+
+using namespace std;
 
 /*
 *******************************************************************
@@ -57,13 +60,14 @@ public:
 	~ASTerrain();
 
 	// Public methods
-	bool Init(ID3D11Device*, char*, WCHAR*);
+	bool Init(ID3D11Device*, char*, vector<WCHAR*>);
 	void Release();
 
 	void GetVerticeArray(void*);	
 	int GetNumVertices();
 
-	ID3D11ShaderResourceView* GetTexture();
+	ID3D11ShaderResourceView*   GetTextureAtIndex(int);
+	void GetTextures(vector<ID3D11ShaderResourceView*>&);
 
 private:
 	// Private methods
@@ -71,7 +75,7 @@ private:
 
 	// Texturre handlign methods
 	void CalculateTextureCoords();
-	bool LoadTexture(ID3D11Device*, WCHAR*);
+	bool LoadTexture(ID3D11Device*, vector<WCHAR*>);
 
 	// Height map handling code
 	bool LoadHeightMap(char*);
@@ -83,12 +87,12 @@ private:
 	int m_height;
 	int m_numVertices;
 
-	ASVertex*     m_vertices;
-	ASTexture*    m_texture;
-	ASHeightMap*  m_heightMap;
+	ASVertex*           m_vertices;
+	vector<ASTexture>*  m_textures;
+	ASHeightMap*        m_heightMap;
 };
 
 // controls the size of the sample for the texture
-const int TEXTURE_TILE_SIZE = 8;
+const int TEXTURE_TILE_SIZE = 16;
 
 #endif

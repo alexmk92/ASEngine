@@ -143,8 +143,8 @@
     <None Include="ASFont.vs" />
     <None Include="ASSkyBox.ps" />
     <None Include="ASSkyBox.vs" />
-    <None Include="ASTerrain.ps" />
-    <None Include="ASTerrain.vs" />
+    <None Include="ASTerrainPS.hlsl" />
+    <None Include="ASTerrainVS.hlsl" />
     <None Include="ASTexture.ps" />
     <None Include="ASTexture.vs" />
   </ItemGroup>

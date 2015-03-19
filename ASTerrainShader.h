@@ -21,6 +21,8 @@
 #include <d3dx11async.h>
 #include <fstream>
 #include "ASLightShader.h"
+#include <vector>
+
 using namespace std;
 
 /*
@@ -51,11 +53,14 @@ public:
 	void Release();
 	void RenderShader(ID3D11DeviceContext*, int);
 	bool SetShaderParameters(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, 
-							 D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3, ID3D11ShaderResourceView*);
+							 D3DXVECTOR4, D3DXVECTOR4, D3DXVECTOR3, 
+							 vector<ID3D11ShaderResourceView*>);	// each resource = 1 texture
 private:
 	// Private methods
 	bool InitShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);
 	void RaiseShaderError(ID3D10Blob*, HWND, WCHAR*);
+
+	int  m_numTextures;
 };
 
 #endif

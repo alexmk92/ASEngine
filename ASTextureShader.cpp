@@ -242,49 +242,6 @@ bool ASTextureShader::InitShader(ID3D11Device* device, HWND handle, WCHAR* vsFil
 
 /*
 ******************************************************************
-* METHOD: Release Shader
-******************************************************************
-* Disposes of any resources used by the shader and then sets a null
-* pointer to each of the member variables so we can't access it
-*/
-
-void ASTextureShader::ReleaseShader()
-{
-	// Destroy the sampler
-	if(m_sampleState)
-	{
-		m_sampleState->Release();
-		m_sampleState = 0;
-	}
-	// Destroy constant buffer
-	if(m_cBuffer)
-	{
-		m_cBuffer->Release();
-		m_cBuffer = 0;
-	}
-	// Destroy the input layout
-	if(m_iLayout)
-	{
-		m_iLayout->Release();
-		m_iLayout = 0;
-	}
-	// Destroy the pixel shader
-	if(m_pShader)
-	{
-		m_pShader->Release();
-		m_pShader = 0;
-	}
-	// Destroy the vertex shader
-	if(m_vShader)
-	{
-		m_vShader->Release();
-		m_vShader = 0;
-	}
-	return;
-}
-
-/*
-******************************************************************
 * METHOD: Report Shader Error
 ******************************************************************
 * Displays error messages that the compiler generates when trying
@@ -394,5 +351,48 @@ void ASTextureShader::RenderShader(ID3D11DeviceContext* deviceContext, int numIn
 	// Render the model
 	deviceContext->DrawIndexed(numIndices, 0, 0);
 
+	return;
+}
+
+/*
+******************************************************************
+* METHOD: Release Shader
+******************************************************************
+* Disposes of any resources used by the shader and then sets a null
+* pointer to each of the member variables so we can't access it
+*/
+
+void ASTextureShader::ReleaseShader()
+{
+	// Destroy the sampler
+	if(m_sampleState)
+	{
+		m_sampleState->Release();
+		m_sampleState = 0;
+	}
+	// Destroy constant buffer
+	if(m_cBuffer)
+	{
+		m_cBuffer->Release();
+		m_cBuffer = 0;
+	}
+	// Destroy the input layout
+	if(m_iLayout)
+	{
+		m_iLayout->Release();
+		m_iLayout = 0;
+	}
+	// Destroy the pixel shader
+	if(m_pShader)
+	{
+		m_pShader->Release();
+		m_pShader = 0;
+	}
+	// Destroy the vertex shader
+	if(m_vShader)
+	{
+		m_vShader->Release();
+		m_vShader = 0;
+	}
 	return;
 }

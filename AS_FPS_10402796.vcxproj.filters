@@ -211,16 +211,16 @@
     <None Include="ASTexture.vs">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="ASTerrain.vs">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="ASTerrain.ps">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="ASSkyBox.vs">
       <Filter>Shaders</Filter>
     </None>
     <None Include="ASSkyBox.ps">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASTerrainPS.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ASTerrainVS.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

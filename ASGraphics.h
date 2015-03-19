@@ -34,6 +34,7 @@
 #include "ASQuadTree.h"
 #include "ASSkyShader.h"
 #include "ASSkyBox.h"
+#include <vector>
 
 /*
 *******************************************************************

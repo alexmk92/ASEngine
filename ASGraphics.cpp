@@ -68,7 +68,7 @@ ASGraphics::~ASGraphics()
 * @return bool - True if the window initialised, else false
 *******************************************************************
 */
-
+using namespace std;
 bool ASGraphics::Init(int w, int h, HWND hwnd)
 {
 	bool success = false;
@@ -105,7 +105,12 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 	if(!m_WorldTerrain)
 		return false;
 
-	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapC.bmp", L"./textures/dirt01.dds");
+	// Build an array of textures to pass to the terrain
+	vector<WCHAR*> textures;
+	textures.push_back(L"./textures/grass.dds");
+	textures.push_back(L"./textures/rock.dds");
+	textures.push_back(L"./textures/slope.dds");
+	success = m_WorldTerrain->Init(m_D3D->GetDevice(), "./textures/mapC.bmp", textures);
 	if(!success) {
 		MessageBox(hwnd, L"Error when initialising the world terrain in ASGraphics.cpp.", L"Error", MB_OK);
 		return false;
@@ -117,12 +122,13 @@ bool ASGraphics::Init(int w, int h, HWND hwnd)
 		return false;
 
 	// Initialise the model, passing the rendering device 
+	/*
 	success = m_Model->Init(m_D3D->GetDevice(), L"./textures/seafloor.dds", "./models/cube.txt");
 	if(!success)
 	{
 		MessageBox(hwnd, L"Error when initialising the model in ASGraphics.cpp, please check ASModel.cpp for errors.", L"Error", MB_OK);
 		return false;
-	}
+	}*/
 
 	// Initiase a new terrain shader
 	m_terrainShader = new ASTerrainShader;
@@ -297,9 +303,11 @@ bool ASGraphics::RenderScene(ASCameraInfo info)
 
 
 	// Build the terrain
-	success = m_terrainShader->SetShaderParameters(m_D3D->GetDeviceContext(), world, view, projection, m_light->GetAmbientColor(), 
-												   m_light->GetDiffuseColor(), m_light->GetLightDirection(), m_WorldTerrain->GetTexture());
+	vector<ID3D11ShaderResourceView*> res;
+	m_WorldTerrain->GetTextures(res);
 
+	success = m_terrainShader->SetShaderParameters(m_D3D->GetDeviceContext(), world, view, projection, m_light->GetAmbientColor(), 
+												   m_light->GetDiffuseColor(), m_light->GetLightDirection(), res);
 
 	if(!success)
 		return false;

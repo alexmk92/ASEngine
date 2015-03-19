@@ -61,7 +61,7 @@ bool ASTerrainShader::Init(ID3D11Device* device, HWND handle)
 {
 	// Load vertex and pixel shaders from source file, these will be compiled via HLSL in
 	// the InitShader method
-	bool success = InitShader(device, handle, L"./ASTerrain.vs", L"./ASTerrain.ps");
+	bool success = InitShader(device, handle, L"./ASTerrainVS.hlsl", L"./ASTerrainPS.hlsl");
 	if(!success)
 		return false;
 	else
@@ -277,12 +277,14 @@ void ASTerrainShader::RaiseShaderError(ID3D10Blob* msg, HWND handle, WCHAR* shad
 * @param D3DXVECTOR4 - the ambient color of the light
 * @param D3DXVECTOR4 - the diffuse color of the light
 * @param D3DXVECTOR3 - The vector holding direction of light
+* @param ID3D11ShaderResourceView* - Pointer to the texture 
 *
 * @return bool - True if the shader was set, else false
 */
 
 bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX world, D3DXMATRIX view, D3DXMATRIX projection, 
-										  D3DXVECTOR4 ambient, D3DXVECTOR4 diffuse, D3DXVECTOR3 lightDir, ID3D11ShaderResourceView* texture)
+										  D3DXVECTOR4 ambient, D3DXVECTOR4 diffuse, D3DXVECTOR3 lightDir, 
+										  vector<ID3D11ShaderResourceView*> textures)
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE res;
@@ -318,8 +320,7 @@ bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 	deviceContext->Unmap(m_cBuffer, 0);
 
 	// Set the position of the constant buffer in the vertex shader
-	bufferNum = 0;
-	deviceContext->VSSetConstantBuffers(bufferNum, 1, &m_cBuffer);
+	deviceContext->VSSetConstantBuffers(0, 1, &m_cBuffer);
 	
 	/*
 	* LIGHT BUFFER
@@ -344,9 +345,11 @@ bool ASTerrainShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, D3
 
 	// Set the position of the constant buffer in the pixel shader - this will then be used for drawing
 	// at the next stage of the render pipeline
-	bufferNum = 0;
-	deviceContext->PSSetConstantBuffers(bufferNum, 1, &m_lBuffer);
-	deviceContext->PSSetShaderResources(0, 1, &texture);
+	deviceContext->PSSetConstantBuffers(0, 1, &m_lBuffer);
+
+	// Loop through each of the textures and set it in the shader
+	for(int i = 0; i < textures.size(); i++)
+		deviceContext->PSSetShaderResources(i, 1, &textures.at(i));
 
 	return true;
 }

@@ -23,7 +23,7 @@ ASTerrain::ASTerrain()
 	m_width       = 0;
 	m_numVertices = 0;
 	m_heightMap   = 0;
-	m_texture     = 0;
+	m_textures    = 0;
 	m_vertices    = 0;
 }
 
@@ -55,10 +55,11 @@ ASTerrain::~ASTerrain()
 *
 * @param ID3D11Device* - Pointer to the rendering device
 * @param char*         - Pointer to the heightmap bitmap file
+* @param WCHAR*[]      - Pointer to array of textures to be loaded
 * @return bool - True if successfully intiialised, else false
 */
 
-bool ASTerrain::Init(ID3D11Device* device, char* heightmapFile, WCHAR* texFile)
+bool ASTerrain::Init(ID3D11Device* device, char* heightmapFile, vector<WCHAR*> textures)
 {
 	// Attempt to load the heightmap and then normalise its vector
 	// so it can be passed to the geometry buffers
@@ -79,7 +80,7 @@ bool ASTerrain::Init(ID3D11Device* device, char* heightmapFile, WCHAR* texFile)
 
 	// Load the texture to be applied to the map, only once the texture coordinates
 	// have been mapped to the global struct
-	success = LoadTexture(device, texFile);
+	success = LoadTexture(device, textures);
 	if(!success)
 		return false;
 
@@ -296,13 +297,21 @@ bool ASTerrain::InitBuffers(ID3D11Device* device)
 * METHOD: Get Texture
 *******************************************************************
 * Returns the current texture loaded for the map
-*
+* 
+* @param int - the index for the texture we want to retrieve
 * @return ID3D11ShaderResourceView* - pointer to the current texture
 */
 
-ID3D11ShaderResourceView* ASTerrain::GetTexture()
+ID3D11ShaderResourceView* ASTerrain::GetTextureAtIndex(int index)
 {
-	return m_texture->GetTexture();
+	return m_textures->at(index).GetTexture();
+}
+
+void ASTerrain::GetTextures(vector<ID3D11ShaderResourceView*>& textures)
+{
+	const int size = m_textures->size();
+	for(int i = 0; i < size; i++)
+		textures.push_back(m_textures->at(i).GetTexture());
 }
 
 /*
@@ -377,14 +386,17 @@ void ASTerrain::CalculateTextureCoords()
 * @return bool - True if successfully loaded, else false
 */
 
-bool ASTerrain::LoadTexture(ID3D11Device* device, WCHAR* texFile)
+bool ASTerrain::LoadTexture(ID3D11Device* device, vector<WCHAR*> textures)
 {
+	const int NUM_TEXTURES = textures.size();
 	// Check we could create a texture object, then initialise it
-	m_texture = new ASTexture;
-	if(!m_texture)
+	m_textures = new vector<ASTexture>(NUM_TEXTURES);
+	if(!m_textures)
 		return false;
-	if(!m_texture->Init(device, texFile))
-		return false;
+	// Load each texture in the textures array
+	for(int i = 0; i < NUM_TEXTURES; i++) 
+		if(!m_textures->at(i).Init(device, textures.at(i)))
+			return false;
 
 	return true;
 }
@@ -583,10 +595,13 @@ void ASTerrain::Release()
 		m_heightMap = 0;
 	}
 	// Dispose of texture 
-	if(m_texture)
+	if(m_textures)
 	{
-		m_texture->Release();
-		m_texture = 0;
+		for(int i = 0; i < m_textures->size(); i++)
+			m_textures->at(i).Release();
+		
+		delete m_textures;
+		m_textures = 0;
 	}
 	// Release the vertice buffer
 	if(m_vertices)
