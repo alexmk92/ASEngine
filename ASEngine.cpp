@@ -346,8 +346,8 @@ void ASEngine::InitASWindow(int& width, int& height)
 	} 
 	else 
 	{
-		width  = 800;
-		height = 600;
+		width  = 1280;
+		height = 720;
 
 		// Place window in middle of screen
 		posX = (GetSystemMetrics(SM_CXSCREEN) - width)  / 2;
